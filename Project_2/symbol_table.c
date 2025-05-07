@@ -63,7 +63,7 @@ SymbolTableNode_t* lookup(SymbolTable_t* table, const char* S) {
         Target = Target->child[idx];
     }
 
-    return Target;
+    return Target == NULL || !Target->isEnd ? NULL : Target;
 }
 
 SymbolTableNode_t* insert(struct SymbolTable_t* table, const char* S) {
@@ -120,6 +120,10 @@ static void DumpNode(struct SymbolTableNode_t* N) {
         case pDoubleType:
             printf("double");
             break;
+        }
+
+        for (unsigned i = 0; i < N->typeInfo.dimension; i++) {
+            printf("[%u]", N->typeInfo.DIMS[i]);
         }
 
         printf(")\n");

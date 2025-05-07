@@ -43,37 +43,50 @@ static Type_Info_t Type_Info;
 %token <rval> REAL_LITERAL
 %token <sval> STRING_LITERAL ID
 
+// FIX ME, current : 0 -> No , 1 -> Have default value
+%type <ival> Default_Value
+
 %%
 Program : Var_Def Program | ;
 
 // 變數定義/宣告 ///////////////////////////////////////////////////////////////////////// 
 Var_Def: Type ID_Def_List ';';
 
-ID_Def_List: ID
+ID_Def_List: ID Array_Dimensions Default_Value
              { 
+                CHECK_NOT_IN_SYMBOL_TABLE($1);
+
                 if (Type_Info.isConst) { 
-                    yyerror("Constant variable must have initial value");
+                    if (Type_Info.dimension != 0) {
+                        yyerror("Definition of Const Array is not supported.");
+                        fprintf(stderr, "\tFor Variable (%s).\n", $1);
+                        YYERROR;
+                    }
+
+                    if ($3 == 0) {
+                        yyerror("Constant variable must have initial value");
+                        fprintf(stderr, "\tFor Variable (%s).\n", $1);
+                        YYERROR;
+                    }
+                }
+
+                if (Type_Info.dimension != 0 && $3 == 1) {
+                    yyerror("Array Initialization is not supported.");
+                    fprintf(stderr, "\tFor Variable (%s).\n", $1);
                     YYERROR;
                 }
-                CHECK_NOT_IN_SYMBOL_TABLE($1);
 
                 SymbolTableNode_t* Node = insert(&Symbol_Table, $1);
                 Node->typeInfo = Type_Info;
                 free($1);
              }
              ID_Def_List_Suffix
-           | 
-             ID '=' Expression 
-             {
-                CHECK_NOT_IN_SYMBOL_TABLE($1);
-
-                SymbolTableNode_t* Node = insert(&Symbol_Table, $1);
-                Node->typeInfo = Type_Info;
-                free($1);
-             }
-             ID_Def_List_Suffix;
+           ;
 
 ID_Def_List_Suffix: ',' ID_Def_List | ;
+
+Default_Value: '=' Expression   { $$ = 1; }
+              |                 { $$ = 0; } ;
 
 Expression: INTEGER_LITERAL | STRING_LITERAL | REAL_LITERAL;
 
@@ -92,6 +105,31 @@ PType: BOOL         { Type_Info.type = pBoolType; }
      | DOUBLE       { Type_Info.type = pDoubleType; }
      | STRING_yacc  { Type_Info.type = pStringType; }
      |              { yyerror("Missing Type"); YYERROR; } ;
+
+// Array
+Array_Dimensions: { // 單純為了初始化
+                    Type_Info.dimension = 0;
+                  } 
+                  Array_Dimensions_Internal;
+
+Array_Dimensions_Internal: '[' INTEGER_LITERAL ']' 
+                            {
+                                Type_Info.dimension++;
+
+                                if (Type_Info.dimension > MAX_ARRAY_DIMENSION) {
+                                    yyerror("Array with more than 10 dimensions is not supported.");
+                                    YYERROR;
+                                }
+
+                                if ($2 == 0) {
+                                    yyerror("Array size cannot be zero");
+                                    YYERROR;
+                                }
+
+                                Type_Info.DIMS[Type_Info.dimension - 1] = $2;
+                            } 
+                            Array_Dimensions_Internal
+                           | /* Empty */ ;
 
 
 
