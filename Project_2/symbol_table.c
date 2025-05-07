@@ -52,7 +52,21 @@ struct SymbolTable_t create() {
     return Result;
 }
 
-void insert(struct SymbolTable_t* table, const char* S) {
+SymbolTableNode_t* lookup(SymbolTable_t* table, const char* S) {
+    int idx = Char2Idx(*S);
+    S++;
+    SymbolTableNode_t* Target = table->root[idx];
+
+    while (Target != NULL && *S != '\0') {
+        idx = Char2Idx(*S);
+        S++;
+        Target = Target->child[idx];
+    }
+
+    return Target;
+}
+
+SymbolTableNode_t* insert(struct SymbolTable_t* table, const char* S) {
     int idx = Char2Idx(*S);
     S++;
     struct SymbolTableNode_t** curr = &(table->root[idx]);
@@ -73,6 +87,8 @@ void insert(struct SymbolTable_t* table, const char* S) {
             break;
         }
     } while (true);
+
+    return *curr;
 }
 
 
@@ -82,8 +98,32 @@ static void DumpNode(struct SymbolTableNode_t* N) {
     if (N == NULL) 
         return;
 
-    if (N->isEnd)
-        puts(internal_buf);
+    if (N->isEnd) {
+        printf("%s        type = (", internal_buf);
+        
+        if (N->typeInfo.isConst)
+            printf("const ");
+
+        switch (N->typeInfo.type) {
+        case pIntType:
+            printf("int");
+            break;
+        case pBoolType:
+            printf("bool");
+            break;
+        case pStringType:
+            printf("string");
+            break;
+        case pFloatType:
+            printf("float");
+            break;
+        case pDoubleType:
+            printf("double");
+            break;
+        }
+
+        printf(")\n");
+    }
 
     for (int i = 0; i < ID_CHARS; ++i) {
         internal_buf[buf_len++] = Idx2Char(i);

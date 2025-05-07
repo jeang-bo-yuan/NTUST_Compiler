@@ -6,23 +6,21 @@
 #include "symbol_table.h"
 
 extern int linenum;
-struct SymbolTable_t symbol_table;
+struct SymbolTable_t Symbol_Table;
 
 int yylex();
 void yyerror(char*);
 
-enum PrimitiveType_t {
-    pIntType,
-    pBoolType,
-    pStringType,
-    pFloatType,
-    pDoubleType
-};
+// 確認該 Identifier 沒有在當前 scope 出現過
+#define CHECK_NOT_IN_SYMBOL_TABLE(ID) { \
+    if (lookup(&Symbol_Table, ID) != NULL) { \
+        yyerror("Variable redifined."); \
+        fprintf(stderr, "\tVariable (%s) is redifined.\n", ID); \
+        YYERROR; \
+    } \
+}
 
-static struct {
-    bool isConst;
-    enum PrimitiveType_t type;
-} Type_Info;
+static Type_Info_t Type_Info;
 
 %}
 
@@ -48,6 +46,7 @@ static struct {
 %%
 Program : Var_Def Program | ;
 
+// 變數定義/宣告 ///////////////////////////////////////////////////////////////////////// 
 Var_Def: Type ID_Def_List ';';
 
 ID_Def_List: ID
@@ -56,20 +55,27 @@ ID_Def_List: ID
                     yyerror("Constant variable must have initial value");
                     YYERROR;
                 }
+                CHECK_NOT_IN_SYMBOL_TABLE($1);
 
-                printf("Insert (type:%d) %s into symbol table", Type_Info.type, $1);
+                SymbolTableNode_t* Node = insert(&Symbol_Table, $1);
+                Node->typeInfo = Type_Info;
+                free($1);
              }
              ID_Def_List_Suffix
            | 
              ID '=' Expression 
              {
-                printf("Insert (type:%d) %s into symbol table", Type_Info.type, $1);
+                CHECK_NOT_IN_SYMBOL_TABLE($1);
+
+                SymbolTableNode_t* Node = insert(&Symbol_Table, $1);
+                Node->typeInfo = Type_Info;
+                free($1);
              }
              ID_Def_List_Suffix;
 
 ID_Def_List_Suffix: ',' ID_Def_List | ;
 
-Expression: INTEGER_LITERAL;
+Expression: INTEGER_LITERAL | STRING_LITERAL | REAL_LITERAL;
 
 
 // 型別 /////////////////////////////////////////////////
@@ -84,7 +90,8 @@ PType: BOOL         { Type_Info.type = pBoolType; }
      | FLOAT        { Type_Info.type = pFloatType; } 
      | INT          { Type_Info.type = pIntType; }
      | DOUBLE       { Type_Info.type = pDoubleType; }
-     | STRING_yacc  { Type_Info.type = pStringType; };
+     | STRING_yacc  { Type_Info.type = pStringType; }
+     |              { yyerror("Missing Type"); YYERROR; } ;
 
 
 
@@ -105,7 +112,7 @@ void yyerror(char* msg)
 
 int main (int argc, char *argv[])
 {
-    symbol_table = create();
+    Symbol_Table = create();
 
     /* open the source program file */
     if (argc == 2) {
@@ -129,5 +136,5 @@ int main (int argc, char *argv[])
     else
         puts("\e[32mParsing Success!\e[m");
 
-    dump(&symbol_table);
+    dump(&Symbol_Table);
 }
