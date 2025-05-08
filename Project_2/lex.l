@@ -141,7 +141,7 @@ static char string_buf[MAX_LINE_LENG];
 .       {
         LIST;
         printf("\e[31mBad character at line No. %d:'%s'\n\e[m", linenum, yytext);
-        return YYerror;
+        return 256;
         }
 
 %%

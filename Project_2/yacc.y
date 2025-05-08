@@ -20,7 +20,13 @@ void yyerror(char*);
     } \
 }
 
+// 儲存變數的型別
 static Type_Info_t Type_Info;
+static unsigned DIMS_Buffer[MAX_ARRAY_DIMENSION];
+
+// 儲存函數的型別
+static Function_Type_Info_t Function_Info;
+static Type_Info_t PARAM_Buffer[MAX_PARAMETER_NUM];
 
 %}
 
@@ -56,6 +62,12 @@ ID_Def_List: ID Array_Dimensions Default_Value
              { 
                 CHECK_NOT_IN_SYMBOL_TABLE($1);
 
+                if (Type_Info.type == pVoidType) {
+                    yyerror("Variable cannot be void type.");
+                    fprintf(stderr, "\tFor Variable (%s).\n", $1);
+                    YYERROR;
+                }
+
                 if (Type_Info.isConst) { 
                     if (Type_Info.dimension != 0) {
                         yyerror("Definition of Const Array is not supported.");
@@ -77,6 +89,7 @@ ID_Def_List: ID Array_Dimensions Default_Value
                 }
 
                 SymbolTableNode_t* Node = insert(&Symbol_Table, $1);
+                Node->isFunction = false;
                 Node->typeInfo = Type_Info;
                 free($1);
              }
@@ -104,20 +117,28 @@ PType: BOOL         { Type_Info.type = pBoolType; }
      | INT          { Type_Info.type = pIntType; }
      | DOUBLE       { Type_Info.type = pDoubleType; }
      | STRING_yacc  { Type_Info.type = pStringType; }
+     | VOID         { Type_Info.type = pVoidType; }
      |              { yyerror("Missing Type"); YYERROR; } ;
 
 // Array
 Array_Dimensions: { // 單純為了初始化
                     Type_Info.dimension = 0;
                   } 
-                  Array_Dimensions_Internal;
+                  Array_Dimensions_Internal
+                  { // 將 DIMS_Buffer 複製一份，放入 Type_Info
+                    if (Type_Info.dimension > 0) {
+                        Type_Info.DIMS = calloc(Type_Info.dimension, sizeof(unsigned));
+                        memcpy(Type_Info.DIMS, DIMS_Buffer, Type_Info.dimension * sizeof(unsigned));
+                    }
+                  };
 
 Array_Dimensions_Internal: '[' INTEGER_LITERAL ']' 
                             {
                                 Type_Info.dimension++;
 
                                 if (Type_Info.dimension > MAX_ARRAY_DIMENSION) {
-                                    yyerror("Array with more than 10 dimensions is not supported.");
+                                    yyerror("Array dimension is too high.");
+                                    fprintf(stderr, "\tMax support:  %d-D array.\n", MAX_ARRAY_DIMENSION);
                                     YYERROR;
                                 }
 
@@ -126,7 +147,8 @@ Array_Dimensions_Internal: '[' INTEGER_LITERAL ']'
                                     YYERROR;
                                 }
 
-                                Type_Info.DIMS[Type_Info.dimension - 1] = $2;
+                                // 將維度的大小存進 buffer
+                                DIMS_Buffer[Type_Info.dimension - 1] = $2;
                             } 
                             Array_Dimensions_Internal
                            | /* Empty */ ;

@@ -9,7 +9,11 @@
 
 typedef struct SymbolTableNode_t {
     bool isEnd;
-    Type_Info_t typeInfo;
+    bool isFunction;
+    union {
+        Type_Info_t          typeInfo;
+        Function_Type_Info_t functionTypeInfo;
+    };
     struct SymbolTableNode_t* child[ID_CHARS];
 } SymbolTableNode_t;
 
