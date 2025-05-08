@@ -104,23 +104,7 @@ static void DumpNode(struct SymbolTableNode_t* N) {
         if (N->typeInfo.isConst)
             printf("const ");
 
-        switch (N->typeInfo.type) {
-        case pIntType:
-            printf("int");
-            break;
-        case pBoolType:
-            printf("bool");
-            break;
-        case pStringType:
-            printf("string");
-            break;
-        case pFloatType:
-            printf("float");
-            break;
-        case pDoubleType:
-            printf("double");
-            break;
-        }
+        printf("%s", PrimitiveTypeStr[N->typeInfo.type]);
 
         for (unsigned i = 0; i < N->typeInfo.dimension; i++) {
             printf("[%u]", N->typeInfo.DIMS[i]);

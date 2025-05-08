@@ -1,0 +1,20 @@
+// normal
+int a1;
+float b1;
+bool c1;
+string d1;
+double e1;
+
+// const
+const int a2 = 1;
+const float b2 = 1.0;
+const bool c2 = 1;
+const string d2 = "Hello, World";
+const double e2 = 1.3e-10;
+
+// array
+int a3[10][9][8][7][6][5][4][3][2][1];
+float b3[11][12][13][14][15][16][17][18][19][20];
+bool c3[10][9][8][7][6][5][4][3][2][1];
+string d3[10][9][8][7][6][5][4][3][2][1];
+double e3[10][9][8][7][6][5][4][3][2][1];
