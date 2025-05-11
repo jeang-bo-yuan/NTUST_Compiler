@@ -7,14 +7,14 @@
 #include "expression.h"
 
 extern int linenum;
-struct SymbolTable_t Symbol_Table;
+struct SymbolTable_t* Symbol_Table = NULL;
 
 int yylex();
 void yyerror(char*);
 
 // 確認該 Identifier 沒有在當前 scope 出現過
 #define CHECK_NOT_IN_SYMBOL_TABLE(ID) { \
-    if (lookup(&Symbol_Table, ID) != NULL) { \
+    if (lookup(Symbol_Table, ID) != NULL) { \
         yyerror("Variable redifined."); \
         fprintf(stderr, "\tVariable (%s) is redifined.\n", ID); \
         YYERROR; \
@@ -79,7 +79,7 @@ ID_Def_List: ID Array_Dimensions Default_Value
                     YYERROR;
                 }
 
-                SymbolTableNode_t* Node = insert(&Symbol_Table, $1);
+                SymbolTableNode_t* Node = insert(Symbol_Table, $1);
                 Node->isFunction = false;
                 Node->typeInfo = Type_Info;
 
@@ -225,7 +225,7 @@ Expression:
           }
           | ID
           {
-            SymbolTableNode_t *N = lookup(&Symbol_Table, $1);
+            SymbolTableNode_t *N = lookup(Symbol_Table, $1);
 
             if (N == NULL) {
               yyerror("Variable undefined.");
@@ -328,7 +328,7 @@ void yyerror(char* msg)
 
 int main (int argc, char *argv[])
 {
-    Symbol_Table = create();
+    Symbol_Table = create(Symbol_Table);
 
     /* open the source program file */
     if (argc == 2) {
@@ -349,8 +349,8 @@ int main (int argc, char *argv[])
     /* perform parsing */
     if (yyparse() == 1) /* parsing */
         fprintf(stderr, "\e[31mError at line No. %i\e[m\n", linenum); /* syntax error */
-    else
+    else {
         puts("\e[32mParsing Success!\e[m");
-
-    dump(&Symbol_Table);
+        dump(Symbol_Table);
+    }
 }

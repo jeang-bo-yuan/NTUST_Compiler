@@ -43,12 +43,10 @@ static char Idx2Char (int i) {
     return S[i];
 }
 
-struct SymbolTable_t create() {
-    struct SymbolTable_t Result;
+struct SymbolTable_t* create(SymbolTable_t* parent) {
+    struct SymbolTable_t* Result = calloc(1, sizeof(SymbolTable_t));
 
-    // 初始化為 NULL
-    for (int i = 0; i < ID_FIRST_CHARS; i++)
-        Result.root[i] = NULL;
+    Result->parent = parent;
 
     return Result;
 }
