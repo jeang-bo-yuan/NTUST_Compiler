@@ -31,6 +31,40 @@ static struct SymbolTableNode_t* AllocNode() {
     memset(Result, 0, sizeof(*Result));
     return Result;
 }
+
+static void FreeNode(SymbolTableNode_t* N) {
+    if (N == NULL)
+        return;
+
+    // free children
+    for (unsigned i = 0; i < ID_CHARS; ++i)
+        FreeNode(N->child[i]);
+
+    // free sval
+    if (N->hasDefaultValue && N->defaultValueIsConstExpr && N->typeInfo.type == pStringType)
+        free(N->sval);
+
+    // free Type_Info
+    // NOTE: 參數的 Type_Info 會同時存進 PARAM_Buffer，這裡要避免重覆刪除
+    if (!N->isFunction && !N->isParameter)
+        free(N->typeInfo.DIMS);
+    
+    // free Function_Type_Info
+    if (N->isFunction) {
+        free(N->functionTypeInfo.returnType.DIMS);
+
+        for (unsigned i = 0; i < N->functionTypeInfo.parameterNum; ++i)
+            free(N->functionTypeInfo.parameters[i].DIMS);
+
+        free(N->functionTypeInfo.parameters);
+    }
+
+    // 將 N 放回 Memory Pool
+    union Internal_Memory_t* newHead = (union Internal_Memory_t*)N;
+    newHead->next = MemoryPool;
+    MemoryPool = newHead;
+}
+
 ///////////////////////////////////
 
 static int Char2Idx(char c) {
@@ -43,6 +77,8 @@ static char Idx2Char (int i) {
     return S[i];
 }
 
+//////////////////////////////////////
+
 struct SymbolTable_t* create(SymbolTable_t* parent) {
     struct SymbolTable_t* Result = calloc(1, sizeof(SymbolTable_t));
 
@@ -50,6 +86,20 @@ struct SymbolTable_t* create(SymbolTable_t* parent) {
 
     return Result;
 }
+
+////////////////////////////////////
+
+SymbolTable_t *freeSymbolTable(SymbolTable_t *table)
+{
+    for (unsigned i = 0; i < ID_FIRST_CHARS; ++i)
+        FreeNode(table->root[i]);
+    
+    SymbolTable_t *parent = table->parent;
+    free(table);
+    return parent;
+}
+
+/////////////////////////////////////////
 
 SymbolTableNode_t* lookup(SymbolTable_t* table, const char* S) {
     int idx = Char2Idx(*S);
@@ -64,6 +114,8 @@ SymbolTableNode_t* lookup(SymbolTable_t* table, const char* S) {
 
     return Target == NULL || !Target->isEnd ? NULL : Target;
 }
+
+///////////////////////////////////////////
 
 SymbolTableNode_t* insert(struct SymbolTable_t* table, const char* S) {
     int idx = Char2Idx(*S);
@@ -90,6 +142,7 @@ SymbolTableNode_t* insert(struct SymbolTable_t* table, const char* S) {
     return *curr;
 }
 
+/////////////////////////////////////////////////
 
 static char internal_buf[256];
 static int buf_len = 0;
@@ -100,19 +153,30 @@ static void DumpNode(struct SymbolTableNode_t* N) {
     if (N->isEnd) {
         printf("%s        type = (", internal_buf);
 
-        printTypeInfo(stdout, N->typeInfo);
+        if (N->isFunction)
+            printFunctionTypeInfo(stdout, N->functionTypeInfo);
+        else
+            printTypeInfo(stdout, N->typeInfo);
 
         printf(")");
 
-        if (N->typeInfo.isConst) {
-            switch (N->typeInfo.type) {
-                case pIntType:      printf("    Const Value = %i" , N->ival); break;
-                case pFloatType:    printf("    Const Value = %gf", N->fval); break;
-                case pDoubleType:   printf("    Const Value = %g" , N->dval); break;
-                case pBoolType:     printf("    Const Value = %s" , N->bval ? "true" : "false"); break;
-                case pStringType:   printf("    Const Value = \"%s\"" , N->sval); break;
+        if (N->hasDefaultValue) {
+            printf("    %s Value = ", N->typeInfo.isConst ? "Const" : "Default");
+
+            if (N->defaultValueIsConstExpr) {
+                switch (N->typeInfo.type) {
+                    case pIntType:      printf("%i" , N->ival); break;
+                    case pFloatType:    printf("%gf", N->fval); break;
+                    case pDoubleType:   printf("%g" , N->dval); break;
+                    case pBoolType:     printf("%s" , N->bval ? "true" : "false"); break;
+                    case pStringType:   printf("\"%s\"" , N->sval); break;
+                }
             }
+            // else TODO;
         }
+
+        if (N->isParameter)
+            printf("  (Parameter)");
 
         printf("\n");
     }

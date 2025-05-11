@@ -33,6 +33,9 @@ typedef struct Type_Info_t {
  */
 extern const Type_Info_t BOOL_TYPE, INT_TYPE, FLOAT_TYPE, DOUBLE_TYPE, STRING_TYPE;
 
+/**
+ * 記錄函數的資訊
+ */
 typedef struct Function_Type_Info_t {
     Type_Info_t returnType;  // 回傳值的型別
     unsigned parameterNum;   // 有幾個參數
@@ -44,6 +47,11 @@ typedef struct Function_Type_Info_t {
  * 印出 T 的型別
  */
 void printTypeInfo(FILE* file, const Type_Info_t T);
+
+/**
+ * 印出 T 的函數型別
+ */
+void printFunctionTypeInfo(FILE* file, const Function_Type_Info_t T);
 
 /**
  * 若不考慮 isConst，檢查 T1 和 T2 是否是一樣的型別

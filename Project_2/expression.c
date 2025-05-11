@@ -168,7 +168,7 @@ void freeExprTree(ExpressionNode_t *root)
         free(root->sval);
 
     // 䆁放字串運算結果
-    // Edge Case: root 是 ID，代表 root->cSval 指向 symbol table 內的字串，這時不應該䆁放
+    // Note:  root 是 ID，代表 root->cSval 指向 symbol table 內的字串，這時不應該䆁放
     if (root->isConstExpr && root->resultTypeInfo.type == pStringType && !root->isID)
         free(root->cSval);
 

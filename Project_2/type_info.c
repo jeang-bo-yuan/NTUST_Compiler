@@ -32,6 +32,20 @@ void printTypeInfo(FILE* file, const Type_Info_t T)
     }
 }
 
+void printFunctionTypeInfo(FILE *file, const Function_Type_Info_t T)
+{
+    printTypeInfo(file, T.returnType);
+
+    fprintf(file, "(");
+    for (unsigned i = 0; i < T.parameterNum; ++i) {
+        if (i != 0)
+            fprintf(file, ", ");
+        printTypeInfo(file, T.parameters[i]);
+    }
+    
+    fprintf(file, ")");
+}
+
 bool isSameTypeInfo_WithoutConst(const Type_Info_t T1, const Type_Info_t T2)
 {
     // 有一樣的 type 和 維度
