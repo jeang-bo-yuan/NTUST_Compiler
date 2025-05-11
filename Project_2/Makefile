@@ -12,3 +12,10 @@ y.tab.c: yacc.y symbol_table.c \
 	yacc -d yacc.y
 	# 在 y.tab.h 前 include expression.h
 	echo '#include "expression.h"' | cat - y.tab.h > temp && mv temp y.tab.h
+
+.PHONY: archive clean
+archive:
+	git archive --prefix=B11132021/ -o B11132021.zip --format=zip HEAD .
+
+clean:
+	rm -rf *.zip lex.yy.c parser y.tab.h y.tab.c
