@@ -7,8 +7,8 @@ double e1;
 
 // const
 const int a2 = 1;
-const float b2 = 1.0;
-const bool c2 = 1;
+const float b2 = 1.0f;
+const bool c2 = true;
 const string d2 = "Hello, World";
 const double e2 = 1.3e-10;
 

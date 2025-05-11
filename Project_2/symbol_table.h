@@ -10,10 +10,21 @@
 typedef struct SymbolTableNode_t {
     bool isEnd;
     bool isFunction;
+    
     union {
         Type_Info_t          typeInfo;
         Function_Type_Info_t functionTypeInfo;
     };
+
+    // 預設值
+    union {
+        int ival;
+        float fval;
+        double dval;
+        char* sval;
+        bool bval;
+    };
+
     struct SymbolTableNode_t* child[ID_CHARS];
 } SymbolTableNode_t;
 

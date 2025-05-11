@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "symbol_table.h"
+#include "expression.h"
 
 extern int linenum;
 struct SymbolTable_t Symbol_Table;
@@ -32,11 +33,10 @@ static Type_Info_t PARAM_Buffer[MAX_PARAMETER_NUM];
 
 %union {
     int     ival;
-    double  rval;
+    float   fval;
+    double  dval;
     char*   sval;
-    struct {
-        int a;
-    }a;
+    ExpressionNode_t* expr;
 }
 
 // Keyword
@@ -46,11 +46,22 @@ static Type_Info_t PARAM_Buffer[MAX_PARAMETER_NUM];
 %token INCR DECR EQ GE LE NE AND OR
 // Literal
 %token <ival> INTEGER_LITERAL
-%token <rval> REAL_LITERAL
+%token <fval> FLOAT_LITERAL
+%token <dval> DOUBLE_LITERAL
 %token <sval> STRING_LITERAL ID
 
-// FIX ME, current : 0 -> No , 1 -> Have default value
-%type <ival> Default_Value
+%type <expr> Default_Value Expression
+
+// 優先級低
+%right '='
+%left OR
+%left AND
+%left '!'
+%left '<' LE EQ GE '>' NE
+%left '+' '-'
+%left '*' '/' '%'
+%nonassoc INCR DECR
+// 優先級高
 
 %%
 Program : Var_Def Program | ;
@@ -68,43 +79,188 @@ ID_Def_List: ID Array_Dimensions Default_Value
                     YYERROR;
                 }
 
-                if (Type_Info.isConst) { 
-                    if (Type_Info.dimension != 0) {
-                        yyerror("Definition of Const Array is not supported.");
-                        fprintf(stderr, "\tFor Variable (%s).\n", $1);
-                        YYERROR;
-                    }
-
-                    if ($3 == 0) {
-                        yyerror("Constant variable must have initial value");
-                        fprintf(stderr, "\tFor Variable (%s).\n", $1);
-                        YYERROR;
-                    }
-                }
-
-                if (Type_Info.dimension != 0 && $3 == 1) {
-                    yyerror("Array Initialization is not supported.");
-                    fprintf(stderr, "\tFor Variable (%s).\n", $1);
-                    YYERROR;
-                }
-
                 SymbolTableNode_t* Node = insert(&Symbol_Table, $1);
                 Node->isFunction = false;
                 Node->typeInfo = Type_Info;
+
+                if ($3) {
+                  printf("\t\e[35mFor Variable:\e[m %s\n", $1);
+                  printf("\t\e[35mDefault Value = \e[m ");
+                  dumpExprTree(stdout, $3);
+                  printf("\n");
+                }
+
+                if (Node->typeInfo.isConst && ($3 == NULL || $3->isConstExpr == false)) {
+                  yyerror("Constant variable must have initial value that can be calculated at compile time.");
+                  fprintf(stderr, "\tFor Variable (%s).\n", $1);
+                  YYERROR;
+                }
+
+                if ($3) {
+                  // 如果變數型別和 Expression 的型別不同
+                  if (isSameTypeInfo_WithoutConst(Node->typeInfo, $3->resultTypeInfo) == false) {
+                    yyerror("Variable and its default value have different type.");
+
+                    fprintf(stderr, "\tFor variable: %s, ", $1);
+                    printTypeInfo(stderr, Node->typeInfo);
+                    fprintf(stderr, " V.S. ");
+                    printTypeInfo(stderr, $3->resultTypeInfo);
+                    fprintf(stderr, "\n");
+
+                    YYERROR;
+                  }
+
+                  // 記錄起始值
+                  if ($3->isConstExpr) {
+                    switch ($3->resultTypeInfo.type) {
+                      case pIntType:    Node->ival = $3->cIval; break;
+                      case pFloatType:  Node->fval = $3->cFval; break;
+                      case pDoubleType: Node->dval = $3->cDval; break;
+                      case pBoolType:   Node->bval = $3->cBval; break;
+                      case pStringType: {
+                        Node->sval = calloc(strlen($3->cSval), sizeof(char));
+                        strcpy(Node->sval, $3->cSval);
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                // free resource
                 free($1);
+                freeExprTree($3);
              }
              ID_Def_List_Suffix
            ;
 
 ID_Def_List_Suffix: ',' ID_Def_List | ;
 
-Default_Value: '=' Expression   { $$ = 1; }
-              |                 { $$ = 0; } ;
+Default_Value: '=' Expression   { $$ = $2; }
+              |                 { $$ = NULL; } ;
 
-Expression: INTEGER_LITERAL | STRING_LITERAL | REAL_LITERAL;
+// Expression /////////////////////////////////////////////////////////////////////////////
+Expression:
+          '(' Expression ')'          { $$ = $2; } 
+          | Expression '=' Expression { if (($$ = exprAssign($1, $3)) == NULL) YYERROR; }
+          
+          // LOGIC
+          | Expression OR Expression  { if (($$ = exprOR($1, $3)    ) == NULL) YYERROR; }
+          | Expression AND Expression { if (($$ = exprAND($1, $3)   ) == NULL) YYERROR; }
+          | '!' Expression            { if (($$ = exprNOT($2)       ) == NULL) YYERROR; }
+
+          // COMPARE
+          | Expression '<' Expression { if (($$ = exprLT($1, $3)    ) == NULL) YYERROR; }
+          | Expression LE Expression  { if (($$ = exprLE($1, $3)    ) == NULL) YYERROR; }
+          | Expression EQ Expression  { if (($$ = exprEQ($1, $3)    ) == NULL) YYERROR; }
+          | Expression GE Expression  { if (($$ = exprGE($1, $3)    ) == NULL) YYERROR; }
+          | Expression '>' Expression { if (($$ = exprGT($1, $3)    ) == NULL) YYERROR; }
+          | Expression NE Expression  { if (($$ = exprNE($1, $3)    ) == NULL) YYERROR; }
+
+          // Arithmetic
+          | Expression '+' Expression { if (($$ = exprAdd($1, $3)     ) == NULL) YYERROR; }
+          | Expression '-' Expression { if (($$ = exprMinus($1, $3)   ) == NULL) YYERROR; }
+          | Expression '*' Expression { if (($$ = exprMultiply($1, $3)) == NULL) YYERROR; }
+          | Expression '/' Expression { if (($$ = exprDivide($1, $3)  ) == NULL) YYERROR; }
+          | Expression '%' Expression { if (($$ = exprMod($1, $3)     ) == NULL) YYERROR; }
+          | '+' Expression %prec INCR { if (($$ = exprPositive($2)    ) == NULL) YYERROR; }
+          | '-' Expression %prec INCR { if (($$ = exprNegative($2)    ) == NULL) YYERROR; }
+
+          // INCR && DECR
+          | INCR Expression { if (($$ = exprPreIncr($2) ) == NULL) YYERROR; }
+          | DECR Expression { if (($$ = exprPreDecr($2) ) == NULL) YYERROR; }
+          | Expression INCR { if (($$ = exprPostIncr($1)) == NULL) YYERROR; }
+          | Expression DECR { if (($$ = exprPostDecr($1)) == NULL) YYERROR; }
+          
+
+        /**
+        * Literal & ID
+        */
+          | TRUE
+          {
+            $$ = calloc(1, sizeof(ExpressionNode_t));
+            $$->isConstExpr = true;
+            $$->resultTypeInfo = BOOL_TYPE;
+            $$->bval = true;
+            $$->cBval = true;
+          }
+          | FALSE
+          {
+            $$ = calloc(1, sizeof(ExpressionNode_t));
+            $$->isConstExpr = true;
+            $$->resultTypeInfo = BOOL_TYPE;
+            $$->bval = false;
+            $$->cBval = false;
+          }
+          | INTEGER_LITERAL
+          {
+            $$ = calloc(1, sizeof(ExpressionNode_t));
+            $$->isConstExpr = true;
+            $$->resultTypeInfo = INT_TYPE;
+            $$->ival = $1;
+            $$->cIval = $1;
+          }
+          | STRING_LITERAL
+          {
+            $$ = calloc(1, sizeof(ExpressionNode_t));
+            $$->isConstExpr = true;
+            $$->resultTypeInfo = STRING_TYPE;
+            $$->sval = $1;
+            $$->cSval = $1;
+          }
+          | FLOAT_LITERAL
+          {
+            $$ = calloc(1, sizeof(ExpressionNode_t));
+            $$->isConstExpr = true;
+            $$->resultTypeInfo = FLOAT_TYPE;
+            $$->fval = $1;
+            $$->cFval = $1;
+          }
+          | DOUBLE_LITERAL
+          {
+            $$ = calloc(1, sizeof(ExpressionNode_t));
+            $$->isConstExpr = true;
+            $$->resultTypeInfo = DOUBLE_TYPE;
+            $$->dval = $1;
+            $$->cDval = $1;
+          }
+          | ID
+          {
+            SymbolTableNode_t *N = lookup(&Symbol_Table, $1);
+
+            if (N == NULL) {
+              yyerror("Variable undefined.");
+              fprintf(stderr, "\tFor ID = %s\n", $1);
+              YYERROR;
+            }
+            if (N->isFunction) {
+              yyerror("Function name cannot exist alone.");
+              fprintf(stderr, "\tFor ID = %s\n", $1);
+              YYERROR;
+            }
+
+            $$ = calloc(1, sizeof(ExpressionNode_t));
+            $$->isID = true;
+            $$->resultTypeInfo = N->typeInfo;
+            $$->sval = $1; // ID
+
+            // 是常數
+            if (N->typeInfo.isConst) {
+              // 從 symbol table 取出值，存進 expression node 的「編譯時期計算結果」
+              $$->isConstExpr = true;
+
+              switch ($$->resultTypeInfo.type) {
+                case pIntType:    $$->cIval = N->ival; break;
+                case pFloatType:  $$->cFval = N->fval; break;
+                case pDoubleType: $$->cDval = N->dval; break;
+                case pBoolType:   $$->cBval = N->bval; break;
+                case pStringType: $$->cSval = N->sval; break;
+              }
+            }
+          }
+          ;
 
 
-// 型別 /////////////////////////////////////////////////
+// 型別 ///////////////////////////////////////////////////////////////////////////////////
 Type: { memset(&Type_Info, 0, sizeof(Type_Info)); } 
       Qualifier 
       PType;

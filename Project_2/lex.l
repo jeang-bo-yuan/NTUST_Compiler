@@ -20,10 +20,10 @@
                                 return t; \
                            }
 
-#define tokenReal(t, r)    { \
+#define tokenReal(t, r, val) { \
                                 LIST; \
                                 DEBUG("<%s:%f>\n", #t, r); \
-                                yylval.rval = r; \
+                                yylval.val = r; \
                                 return t; \
                            }
 
@@ -125,7 +125,8 @@ static char string_buf[MAX_LINE_LENG];
 
 [a-zA-Z_][a-zA-Z_0-9]*  { tokenString(ID, yytext); }
 
-[0-9]+\.[0-9]*([eE][+-]?[0-9]+)? { tokenReal(REAL_LITERAL, atof(yytext)); }
+[0-9]+\.[0-9]*([eE][+-]?[0-9]+)?     { tokenReal(DOUBLE_LITERAL, atof(yytext), dval); }
+[0-9]+\.[0-9]*([eE][+-]?[0-9]+)?[fF] { tokenReal(FLOAT_LITERAL, atof(yytext), fval); }
 
 [0-9]+ { tokenInteger(INTEGER_LITERAL, atoi(yytext)); }
 

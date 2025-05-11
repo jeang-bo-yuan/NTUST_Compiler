@@ -2,6 +2,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 // Memory Pool ///////////////////
 union Internal_Memory_t {
@@ -100,17 +101,22 @@ static void DumpNode(struct SymbolTableNode_t* N) {
 
     if (N->isEnd) {
         printf("%s        type = (", internal_buf);
-        
-        if (N->typeInfo.isConst)
-            printf("const ");
 
-        printf("%s", PrimitiveTypeStr[N->typeInfo.type]);
+        printTypeInfo(stdout, N->typeInfo);
 
-        for (unsigned i = 0; i < N->typeInfo.dimension; i++) {
-            printf("[%u]", N->typeInfo.DIMS[i]);
+        printf(")");
+
+        if (N->typeInfo.isConst) {
+            switch (N->typeInfo.type) {
+                case pIntType:      printf("    Const Value = %i" , N->ival); break;
+                case pFloatType:    printf("    Const Value = %gf", N->fval); break;
+                case pDoubleType:   printf("    Const Value = %g" , N->dval); break;
+                case pBoolType:     printf("    Const Value = %s" , N->bval ? "true" : "false"); break;
+                case pStringType:   printf("    Const Value = \"%s\"" , N->sval); break;
+            }
         }
 
-        printf(")\n");
+        printf("\n");
     }
 
     for (int i = 0; i < ID_CHARS; ++i) {
