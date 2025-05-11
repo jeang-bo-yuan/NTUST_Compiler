@@ -427,10 +427,12 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue) {
           break;
         }
       }
-    }
-  }
 
-  freeExprTree(defaultValue);
+      freeExprTree(defaultValue);
+    }
+    else
+      Node->expr = defaultValue;
+  }
 
   return true;
 }
@@ -462,5 +464,6 @@ int main (int argc, char *argv[])
     else {
         puts("\e[32mParsing Success!\e[m");
         dump(Symbol_Table);
+        Symbol_Table = freeSymbolTable(Symbol_Table);
     }
 }

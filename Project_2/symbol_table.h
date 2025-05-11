@@ -1,6 +1,7 @@
 #pragma once
 #include <stdbool.h>
 #include "type_info.h"
+#include "expression.h"
 
 #define ID_CHARS 63
 #define ID_FIRST_CHARS 53
@@ -21,11 +22,12 @@ typedef struct SymbolTableNode_t {
 
     // 預設值
     union {
-        int ival;
+        int ival;      // 預設值為 int 常數
         float fval;
         double dval;
         char* sval;
         bool bval;
+        ExpressionNode_t* expr; // 預設值為 expression，但不是常數
     };
 
     struct SymbolTableNode_t* child[ID_CHARS];

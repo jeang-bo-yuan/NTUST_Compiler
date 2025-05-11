@@ -40,9 +40,16 @@ static void FreeNode(SymbolTableNode_t* N) {
     for (unsigned i = 0; i < ID_CHARS; ++i)
         FreeNode(N->child[i]);
 
-    // free sval
-    if (N->hasDefaultValue && N->defaultValueIsConstExpr && N->typeInfo.type == pStringType)
-        free(N->sval);
+    // 䆁放預設值
+    if (N->hasDefaultValue) {
+        // free sval
+        if (N->defaultValueIsConstExpr && N->typeInfo.type == pStringType)
+            free(N->sval);
+
+        // free expr
+        if (!N->defaultValueIsConstExpr)
+            freeExprTree(N->expr);
+    }
 
     // free Type_Info
     // NOTE: 參數的 Type_Info 會同時存進 PARAM_Buffer，這裡要避免重覆刪除
@@ -172,7 +179,8 @@ static void DumpNode(struct SymbolTableNode_t* N) {
                     case pStringType:   printf("\"%s\"" , N->sval); break;
                 }
             }
-            // else TODO;
+            else
+                dumpExprTree(stdout, N->expr);
         }
 
         if (N->isParameter)
@@ -198,6 +206,7 @@ void dump(const struct SymbolTable_t* table) {
         DumpNode(table->root[i]);
         internal_buf[buf_len--] = '\0';
     }
+    puts("");
 }
 
 
