@@ -431,7 +431,7 @@ ExpressionNode_t *exprAdd(ExpressionNode_t *leftOperand, ExpressionNode_t *right
             case pDoubleType:  newNode->cDval = leftOperand->cDval + rightOperand->cDval;   break;
             case pStringType: {
                 // 字串串接
-                newNode->cSval = calloc(strlen(leftOperand->cSval) + strlen(rightOperand->cSval), sizeof(char));
+                newNode->cSval = calloc(strlen(leftOperand->cSval) + strlen(rightOperand->cSval) + 1, sizeof(char));
                 strcpy(newNode->cSval, leftOperand->cSval);
                 strcat(newNode->cSval, rightOperand->cSval);
             }

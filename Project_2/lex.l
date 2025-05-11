@@ -30,7 +30,7 @@
 #define tokenString(t, s)  { \
                                 LIST; \
                                 DEBUG("<%s:%s>\n", #t, s); \
-                                char* dst = calloc(strlen(s), sizeof(char)); \
+                                char* dst = calloc(strlen(s) + 1, sizeof(char)); \
                                 strcpy(dst, s); \
                                 yylval.sval = dst; \
                                 return t; \

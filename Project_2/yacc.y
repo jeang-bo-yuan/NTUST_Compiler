@@ -118,7 +118,7 @@ ID_Def_List: ID Array_Dimensions Default_Value
                       case pDoubleType: Node->dval = $3->cDval; break;
                       case pBoolType:   Node->bval = $3->cBval; break;
                       case pStringType: {
-                        Node->sval = calloc(strlen($3->cSval), sizeof(char));
+                        Node->sval = calloc(strlen($3->cSval) + 1, sizeof(char));
                         strcpy(Node->sval, $3->cSval);
                         break;
                       }
