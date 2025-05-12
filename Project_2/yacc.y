@@ -26,7 +26,10 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue);
     } \
 }
 
-// 在全域的定義中，暫存 identifier 的值
+// 是否在 global scope
+#define IN_GLOBAL_SCOPE() (Symbol_Table->parent == NULL)
+
+// 在 global scope 中，暫存 identifier 的值
 static char* Global_Level_ID = NULL;
 
 // Note: 因為 Var_Def 裡面不會出現 Var_Def； Func_Def 裡面不會出現 Func_Def。
@@ -412,6 +415,13 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue) {
   // 檢查 const 變數有預設值
   if (Node->typeInfo.isConst && (defaultValue == NULL || defaultValue->isConstExpr == false)) {
     yyerror("Constant variable must have initial value that can be calculated at compile time.");
+    fprintf(stderr, "\tFor Variable (%s).\n", identifier);
+    return false;
+  }
+
+  // 全域變數的預設值 只能 是「編譯時期常數」
+  if (IN_GLOBAL_SCOPE() && defaultValue && defaultValue->isConstExpr == false) {
+    yyerror("Global variable's initial value must be calculated at compile time.");
     fprintf(stderr, "\tFor Variable (%s).\n", identifier);
     return false;
   }

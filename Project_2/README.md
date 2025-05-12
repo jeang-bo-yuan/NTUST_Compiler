@@ -1,4 +1,4 @@
-# Feature
+# Type
 
 ## Array
 
@@ -13,6 +13,21 @@ int arr[10][20];
 ```
 
 最高支援 15 維陣列。每一維的大小必需是常數。
+
+## Const
+
+const variable 必須在定義時給定初始值，且定義後不能再修改。
+
+唯一不用給初始值的情況是：const function parameter。函數的參數會在呼叫時才賦值，不過const function parameter同樣在賦值後不能再被修改。
+
+## 初始值
+
+global non-const variable 和 const variable 的初始值一定要是「編譯時期常數」。
+
+local non-const variable 的初始值可以是任意 expression。
+
+
+# 運算
 
 ## Operator
 
