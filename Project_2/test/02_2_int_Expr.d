@@ -9,3 +9,4 @@ const bool Int_comp =    Int_03 > 1
                       || Int_03 == 1 
                       || Int_03 != 1;
                       
+main(){}

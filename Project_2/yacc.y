@@ -20,8 +20,8 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue);
 // 確認該 Identifier 沒有在當前 scope 出現過
 #define CHECK_NOT_IN_CURRENT_SCOPE(ID) { \
     if (lookup(Symbol_Table, ID) != NULL) { \
-        yyerror("Variable or Function redifined."); \
-        fprintf(stderr, "\tVariable or Function (%s) is redifined.\n", ID); \
+        yyerror("Identifier redifined."); \
+        fprintf(stderr, "\tIdentifier (%s) is redifined.\n", ID); \
         YYERROR; \
     } \
 }
@@ -677,8 +677,17 @@ int main (int argc, char *argv[])
     if (yyparse() == 1) /* parsing */
         fprintf(stderr, "\e[31mError at line No. %i\e[m\n", linenum); /* syntax error */
     else {
-        puts("\e[32mParsing Success!\e[m");
         dump(Symbol_Table);
+        
+        SymbolTableNode_t* N = lookup(Symbol_Table, "main");
+
+        if (N == NULL || !N->isFunction) {
+          yyerror("Main Function Not Exist");
+        }
+        else {
+          puts("\e[32mParsing Success!\e[m");
+        }
+
         Symbol_Table = freeSymbolTable(Symbol_Table);
     }
 }

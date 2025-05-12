@@ -7,3 +7,5 @@ const bool Float_comp =   Float_01 > 0.f
                        || Float_01 <= 0.f
                        || Float_01 == 0.f
                        || Float_01 != 0.f;
+
+main(){}

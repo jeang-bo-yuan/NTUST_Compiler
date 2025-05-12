@@ -7,4 +7,5 @@ const bool Double_comp =   Double_01 > 0.
                         || Double_01 <= 0.
                         || Double_01 == 0.
                         || Double_01 != 0.;
-                        
+
+main(){}             

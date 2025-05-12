@@ -1,3 +1,16 @@
+# Usage
+
+```shell
+# compile
+make
+
+# execute (read from stdin)
+./parser
+
+#execute (read from file)
+./parser file
+```
+
 # Type
 
 ## Array
