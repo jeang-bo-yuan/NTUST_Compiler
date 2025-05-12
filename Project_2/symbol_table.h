@@ -49,18 +49,26 @@ typedef struct SymbolTable_t {
  * 建立新的 symbol table
  */
 SymbolTable_t* create(SymbolTable_t* parent);
+
 /**
  * 䆁放 Symbol Table 然後回傳 parent
  */
 SymbolTable_t* freeSymbolTable(SymbolTable_t* table);
+
 /**
  * 查找（不查parent）
  */
 SymbolTableNode_t* lookup(SymbolTable_t* table, const char* S);
 /**
+ * 查找，若在當前 scope 找不到，則嘗試往 parent scope 找
+ */
+SymbolTableNode_t* lookupRecursive(SymbolTable_t* table, const char* S);
+
+/**
  * 插入
  */
 SymbolTableNode_t* insert(SymbolTable_t* table, const char* S);
+
 /**
  * 印出
  */

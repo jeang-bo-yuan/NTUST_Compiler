@@ -18,7 +18,7 @@ void yyerror(char*);
 bool addVariable(const char* identifier, ExpressionNode_t* defaultValue);
 
 // 確認該 Identifier 沒有在當前 scope 出現過
-#define CHECK_NOT_IN_SYMBOL_TABLE(ID) { \
+#define CHECK_NOT_IN_CURRENT_SCOPE(ID) { \
     if (lookup(Symbol_Table, ID) != NULL) { \
         yyerror("Variable or Function redifined."); \
         fprintf(stderr, "\tVariable or Function (%s) is redifined.\n", ID); \
@@ -78,7 +78,7 @@ static Type_Info_t PARAM_Buffer[MAX_PARAMETER_NUM];
 
 %%
 Program :   Type Array_Dimensions ID 
-            { CHECK_NOT_IN_SYMBOL_TABLE($3); Global_Level_ID = $3; } 
+            { CHECK_NOT_IN_CURRENT_SCOPE($3); Global_Level_ID = $3; } 
             Global_Def_Tail
             { free(Global_Level_ID); Global_Level_ID = NULL; }
             Program
@@ -104,7 +104,7 @@ Global_Def_Tail :   // Function
                     }
                     Parameter_Def_List
                     ')' 
-                    '{' '}'
+                    '{' Statements '}'
                     {
                       dump(Symbol_Table);
                       // 䆁放 Symbol Table，回到 global scope
@@ -137,7 +137,7 @@ Var_Def: Type ID_Def_List ';';
 
 ID_Def_List: ID Array_Dimensions Default_Value
              { 
-                CHECK_NOT_IN_SYMBOL_TABLE($1);
+                CHECK_NOT_IN_CURRENT_SCOPE($1);
 
                 if (addVariable($1, $3) == false)
                     YYERROR;
@@ -195,6 +195,11 @@ Non_Empty_Parameter_List:
                     Non_Empty_Parameter_Def_List_Suffix;
 
 Non_Empty_Parameter_Def_List_Suffix: ',' Non_Empty_Parameter_List | /* Empty */ ;
+
+// Statements /////////////////////////////////////////////////////////////////////////////
+Statements: One_Statement Statements | /* Empty */ ;
+One_Statement: Var_Def 
+             | Expression ';' { printf("\t\e[36mExpr = "); dumpExprTree(stdout, $1); puts("\e[m"); freeExprTree($1); };
 
 // Expression /////////////////////////////////////////////////////////////////////////////
 Expression:
@@ -283,7 +288,7 @@ Expression:
           }
           | ID
           {
-            SymbolTableNode_t *N = lookup(Symbol_Table, $1);
+            SymbolTableNode_t *N = lookupRecursive(Symbol_Table, $1);
 
             if (N == NULL) {
               yyerror("Variable undefined.");
@@ -301,8 +306,8 @@ Expression:
             $$->resultTypeInfo = N->typeInfo;
             $$->sval = $1; // ID
 
-            // 是常數
-            if (N->typeInfo.isConst) {
+            // 是常數，且有常數值
+            if (N->typeInfo.isConst && N->hasDefaultValue && N->defaultValueIsConstExpr) {
               // 從 symbol table 取出值，存進 expression node 的「編譯時期計算結果」
               $$->isConstExpr = true;
 

@@ -122,6 +122,20 @@ SymbolTableNode_t* lookup(SymbolTable_t* table, const char* S) {
     return Target == NULL || !Target->isEnd ? NULL : Target;
 }
 
+SymbolTableNode_t *lookupRecursive(SymbolTable_t *table, const char *S)
+{
+    while (table) {
+        SymbolTableNode_t *Result = lookup(table, S);
+
+        if (Result)
+            return Result;
+        else
+            table = table->parent;
+    }
+
+    return NULL;
+}
+
 ///////////////////////////////////////////
 
 SymbolTableNode_t* insert(struct SymbolTable_t* table, const char* S) {

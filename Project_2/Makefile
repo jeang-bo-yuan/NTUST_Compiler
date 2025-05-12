@@ -9,7 +9,7 @@ lex.yy.c: lex.l
 
 y.tab.c: yacc.y symbol_table.c \
          symbol_table.h type_info.h expression.h
-	yacc -d yacc.y
+	yacc -d -v yacc.y
 	# 在 y.tab.h 前 include expression.h
 	echo '#include "expression.h"' | cat - y.tab.h > temp && mv temp y.tab.h
 

@@ -43,7 +43,6 @@ char buf[MAX_LINE_LENG];
 static char string_buf[MAX_LINE_LENG];
 %}
 
-%option noyywrap
 %s MULTI_COMMENT
 %s STRING
 
@@ -146,3 +145,9 @@ static char string_buf[MAX_LINE_LENG];
         }
 
 %%
+
+int yywrap() {
+        printf("\e[32mLine %03d:\e[m %s\n", linenum++, buf);
+        buf[0] = '\0';
+        return 1;
+}
