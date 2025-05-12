@@ -29,7 +29,7 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue);
 // 檢查 Symbol Table Node 不是 NULL
 #define CHECK_NODE_NOT_NULL(N, ID) { \
   if (N == NULL) { \
-    yyerror("Variable or Function undefined!"); \
+    yyerror("Identifier undefined!"); \
     fprintf(stderr, "\tFor ID = %s\n", ID); \
     YYERROR; \
   } \
@@ -75,8 +75,9 @@ static Type_Info_t PARAM_Buffer[MAX_PARAMETER_NUM];
 %token <dval> DOUBLE_LITERAL
 %token <sval> STRING_LITERAL ID
 
-%type <expr> Default_Value Expression FunctionCallOP
+%type <expr> Default_Value Expression
 %type <expr> ArrayIndexOP ArrayIndexOP_Suffix
+%type <expr> FuncCallOP FuncCallOP_Params FuncCallOP_Params_Suffix
 
 // 優先級低
 %right '='
@@ -379,12 +380,31 @@ Expression:
             SymbolTableNode_t* N = lookupRecursive(Symbol_Table, $1); 
             CHECK_NODE_NOT_NULL(N, $1);
 
+            if (N->isFunction) {
+              yyerror("Array Name expected, but got Function Name.");
+              fprintf(stderr, "\tFor ID = %s\n", $1);
+              YYERROR;
+            }
+
             if (($$ = exprArrayIndexOP($1, N->typeInfo, $2)) == NULL)
               YYERROR;
 
             // Note: 不用 free($1)，因為 freeExprTree 會把它清掉
           }
-         // | ID FunctionCallOP
+          | ID FuncCallOP
+          {
+            SymbolTableNode_t* N = lookupRecursive(Symbol_Table, $1);
+            CHECK_NODE_NOT_NULL(N, $1);
+
+            if (!N->isFunction) {
+              yyerror("Function Name expected, but got Variable.");
+              fprintf(stderr, "\tFor ID = %s\n", $1);
+              YYERROR;
+            }
+
+            if (($$ = exprFuncCallOP($1, N->functionTypeInfo, $2)) == NULL)
+              YYERROR;
+          }
 
         /**
         * Literal & ID
@@ -479,7 +499,17 @@ ArrayIndexOP: '[' Expression ']' ArrayIndexOP_Suffix
 ArrayIndexOP_Suffix: ArrayIndexOP  { $$ = $1; }
                    | /* Empty */   { $$ = NULL; } ;
 
+FuncCallOP: '(' FuncCallOP_Params ')' { $$ = $2; }
+          | '(' ')'                   { $$ = NULL; };
 
+FuncCallOP_Params: Expression FuncCallOP_Params_Suffix
+                   {
+                    $1->nextExpression = $2;
+                    $$ = $1;
+                   };
+
+FuncCallOP_Params_Suffix: ',' FuncCallOP_Params  { $$ = $2; }
+                        | /* Empty */            { $$ = NULL; };
 
 // 型別 ///////////////////////////////////////////////////////////////////////////////////
 Type: { memset(&Type_Info, 0, sizeof(Type_Info)); } 

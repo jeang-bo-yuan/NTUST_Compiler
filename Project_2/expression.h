@@ -14,7 +14,7 @@ typedef struct ExpressionNode_t {
     unsigned isFuncCallOP : 1;    // 是否為函數呼叫運算子（如果是的話，sval 存 Function Name，rightOperand 存所有 actual paramenter 的 linked list）
     unsigned isOP : 1;            // 這個節點是運算子（樹的中間節點，但不是 ArrayIndexOP 也不是 FuncCallOP）
     unsigned isConstExpr : 1;     // 是否為常數表達示（可在編譯時期確定值）
-    unsigned isID : 1;            // 這個節點是否代表一個identifier （如果是的話，sval 存 identifier name）
+    unsigned isID : 1;            // 這個節點是否代表一個變數的 identifier （如果是的話，sval 存 identifier name）
 
     Type_Info_t resultTypeInfo;   // 計算結果是什麼型別
 
@@ -86,4 +86,6 @@ ExpressionNode_t* exprPostIncr(ExpressionNode_t* leftOperand);
 ExpressionNode_t* exprPostDecr(ExpressionNode_t* leftOperand);
 // ArrayIndexOP
 ExpressionNode_t* exprArrayIndexOP(char* identifier, const Type_Info_t T, ExpressionNode_t* indices);
+// FuncCallOP
+ExpressionNode_t* exprFuncCallOP(char* identifier, const Function_Type_Info_t T, ExpressionNode_t* params);
 

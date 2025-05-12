@@ -1,0 +1,21 @@
+/**
+* Bonus:
+* 1. 「編譯期表達式」可以包含「常數變數」
+* 2. 每個表達式都會印出對應的 parse tree，如果表達式有部份為「編譯時期可計算」，則印出計算結果
+* 3. 字串比較
+*/
+const int N1 = 100, N2 = (1 + N1) * N1 / 2;
+const float F1 = 1.e2f, F2 = (1.f + F1) * F1 / 2.f;
+const double D1 = 1.e2, D2 = (1. + D1) * D1 / 2.;
+const bool B1 = true, B2 = !B1 && B1 || false;
+const string S1 = "Hello", S2 = S1 + ", World";
+
+main () {
+    int x;
+
+    foreach (x : 1 .. N1)
+        println N1 - x;
+
+    if (S1 < S2 || S1 > S2)
+        println "...";
+}

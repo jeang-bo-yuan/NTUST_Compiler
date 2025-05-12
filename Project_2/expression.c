@@ -98,6 +98,20 @@ static inline bool checkNotArrayType(ExpressionNode_t* E, const char* op) {
     return true;
 }
 
+// 檢查不是 void
+static inline bool checkNotVoidType(ExpressionNode_t* E, const char* op) {
+    if (E->resultTypeInfo.type != pVoidType)
+        return true;
+    
+    yyerror("Type error.");
+
+    fprintf(stderr, "\tThe operand of operator %s is void type\n\tThe Operand = ", op);
+    dumpExprTree(stderr, E);
+    fprintf(stderr, "\n");
+    
+    return false;
+}
+
 // Helper Function ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static inline ExpressionNode_t* allocNewOperatorNode(
@@ -125,8 +139,9 @@ void dumpExprTree(FILE* file, ExpressionNode_t *root)
     if (root == NULL)
         return;
 
+    // Array Index /////////////////////////////////
     if (root->isArrayIndexOP) {
-        fprintf(file, "%s", root->sval);  // Array Name
+        fprintf(file, " %s", root->sval);  // Array Name
 
         // index 組成的 linked list 放在 root->rightOperand                移至下個 index
         for (ExpressionNode_t* indexHead = root->rightOperand; indexHead; indexHead = indexHead->nextExpression) {
@@ -135,6 +150,22 @@ void dumpExprTree(FILE* file, ExpressionNode_t *root)
             fprintf(file, "]");
         }
     }
+    // Function Call ///////////////////////////////
+    else if (root->isFuncCallOP) {
+        fprintf(file, " %s(", root->sval);
+
+        // 印出參數
+        unsigned counter = 0;
+        for (ExpressionNode_t* paramHead = root->rightOperand; paramHead; paramHead = paramHead->nextExpression) {
+            if (counter++) 
+                fprintf(file, ",");
+
+            dumpExprTree(file, paramHead);
+        }
+
+        fprintf(file, ") ");
+    }
+    // Operator ////////////////////////////////////
     else if (root->isOP) {
         fprintf(file, " ( ");
         dumpExprTree(file, root->leftOperand);   // 左運算元
@@ -142,7 +173,7 @@ void dumpExprTree(FILE* file, ExpressionNode_t *root)
         dumpExprTree(file, root->rightOperand);  // 右運算元
         fprintf(file, " ) ");
     }
-    // leaf node ///////////////////////////////////
+    // Variable Name ///////////////////////////////
     else if (root->isID) {
         fprintf(file, " %s ", root->sval); // 印出 ID
     }
@@ -201,6 +232,8 @@ ExpressionNode_t *exprAssign(ExpressionNode_t *leftOperand, ExpressionNode_t *ri
         return NULL;
     if (checkSameType(leftOperand, rightOperand, "=") == false)
         return NULL;
+    if (checkNotVoidType(leftOperand, "=") == false)
+        return NULL;
 
     ExpressionNode_t* newNode = allocNewOperatorNode(leftOperand->resultTypeInfo, "=", leftOperand, rightOperand);
     
@@ -212,6 +245,8 @@ ExpressionNode_t *exprAssign(ExpressionNode_t *leftOperand, ExpressionNode_t *ri
 ExpressionNode_t *exprOR(ExpressionNode_t *leftOperand, ExpressionNode_t *rightOperand)
 {
     if (checkSameType(leftOperand, rightOperand, "||") == false)
+        return NULL;
+    if (checkNotVoidType(leftOperand, "||") == false)
         return NULL;
     if (checkSpecificType(leftOperand, BOOL_TYPE, "||") == false)
         return NULL;
@@ -231,6 +266,8 @@ ExpressionNode_t *exprAND(ExpressionNode_t *leftOperand, ExpressionNode_t *right
 {
     if (checkSameType(leftOperand, rightOperand, "&&") == false)
         return NULL;
+    if (checkNotVoidType(leftOperand, "&&") == false)
+        return NULL;
     if (checkSpecificType(leftOperand, BOOL_TYPE, "&&") == false)
         return NULL;
     
@@ -247,6 +284,8 @@ ExpressionNode_t *exprAND(ExpressionNode_t *leftOperand, ExpressionNode_t *right
 
 ExpressionNode_t *exprNOT(ExpressionNode_t *rightOperand)
 {
+    if (checkNotVoidType(rightOperand, "!") == false)
+        return NULL;
     if (checkSpecificType(rightOperand, BOOL_TYPE, "!") == false)
         return NULL;
 
@@ -267,6 +306,8 @@ ExpressionNode_t *exprLT(ExpressionNode_t *leftOperand, ExpressionNode_t *rightO
 { 
     if (checkSameType(leftOperand, rightOperand, "<") == false) 
         return NULL; 
+    if (checkNotVoidType(leftOperand, "<") == false)
+        return NULL;
     if (checkNotSpecificType(leftOperand, BOOL_TYPE, "<") == false) 
         return NULL; 
     if (checkNotArrayType(leftOperand, "<") == false)
@@ -295,6 +336,8 @@ ExpressionNode_t *exprLE(ExpressionNode_t *leftOperand, ExpressionNode_t *rightO
 { 
     if (checkSameType(leftOperand, rightOperand, "<=") == false) 
         return NULL; 
+    if (checkNotVoidType(leftOperand, "<=") == false)
+        return NULL;
     if (checkNotSpecificType(leftOperand, BOOL_TYPE, "<=") == false) 
         return NULL; 
     if (checkNotArrayType(leftOperand, "<=") == false)
@@ -323,6 +366,8 @@ ExpressionNode_t *exprEQ(ExpressionNode_t *leftOperand, ExpressionNode_t *rightO
 { 
     if (checkSameType(leftOperand, rightOperand, "==") == false) 
         return NULL; 
+    if (checkNotVoidType(leftOperand, "==") == false)
+        return NULL;
 
     /* 新增一個節點，代表 compare 運算子 */ 
     ExpressionNode_t* newNode = allocNewOperatorNode(BOOL_TYPE, "==", leftOperand, rightOperand); 
@@ -348,6 +393,8 @@ ExpressionNode_t *exprGE(ExpressionNode_t *leftOperand, ExpressionNode_t *rightO
 { 
     if (checkSameType(leftOperand, rightOperand, ">=") == false) 
         return NULL; 
+    if (checkNotVoidType(leftOperand, ">=") == false)
+        return NULL;
     if (checkNotSpecificType(leftOperand, BOOL_TYPE, ">=") == false) 
         return NULL; 
     if (checkNotArrayType(leftOperand, ">=") == false)
@@ -376,6 +423,8 @@ ExpressionNode_t *exprGT(ExpressionNode_t *leftOperand, ExpressionNode_t *rightO
 { 
     if (checkSameType(leftOperand, rightOperand, ">") == false) 
         return NULL; 
+    if (checkNotVoidType(leftOperand, ">") == false)
+        return NULL;
     if (checkNotSpecificType(leftOperand, BOOL_TYPE, ">") == false) 
         return NULL; 
     if (checkNotArrayType(leftOperand, ">") == false)
@@ -404,6 +453,8 @@ ExpressionNode_t *exprNE(ExpressionNode_t *leftOperand, ExpressionNode_t *rightO
 { 
     if (checkSameType(leftOperand, rightOperand, "!=") == false) 
         return NULL; 
+    if (checkNotVoidType(leftOperand, "!=") == false)
+        return NULL;
 
     /* 新增一個節點，代表 compare 運算子 */ 
     ExpressionNode_t* newNode = allocNewOperatorNode(BOOL_TYPE, "!=", leftOperand, rightOperand); 
@@ -430,6 +481,8 @@ ExpressionNode_t *exprNE(ExpressionNode_t *leftOperand, ExpressionNode_t *rightO
 ExpressionNode_t *exprAdd(ExpressionNode_t *leftOperand, ExpressionNode_t *rightOperand)
 {
     if (checkSameType(leftOperand, rightOperand, "+") == false)
+        return NULL;
+    if (checkNotVoidType(leftOperand, "+") == false)
         return NULL;
     if (checkNotSpecificType(leftOperand, BOOL_TYPE, "+") == false)
         return NULL;
@@ -462,6 +515,8 @@ ExpressionNode_t *exprMinus(ExpressionNode_t *leftOperand, ExpressionNode_t *rig
 {
     if (checkSameType(leftOperand, rightOperand, "-") == false)
         return NULL;
+    if (checkNotVoidType(leftOperand, "-") == false)
+        return NULL;
     if (checkNotSpecificType(leftOperand, BOOL_TYPE, "-") == false)
         return NULL;
     if (checkNotSpecificType(leftOperand, STRING_TYPE, "-") == false)
@@ -488,6 +543,8 @@ ExpressionNode_t *exprMinus(ExpressionNode_t *leftOperand, ExpressionNode_t *rig
 ExpressionNode_t *exprMultiply(ExpressionNode_t *leftOperand, ExpressionNode_t *rightOperand)
 {
     if (checkSameType(leftOperand, rightOperand, "*") == false)
+        return NULL;
+    if (checkNotVoidType(leftOperand, "*") == false)
         return NULL;
     if (checkNotSpecificType(leftOperand, BOOL_TYPE, "*") == false)
         return NULL;
@@ -516,6 +573,8 @@ ExpressionNode_t *exprDivide(ExpressionNode_t *leftOperand, ExpressionNode_t *ri
 {
     if (checkSameType(leftOperand, rightOperand, "/") == false)
         return NULL;
+    if (checkNotVoidType(leftOperand, "/") == false)
+        return NULL;
     if (checkNotSpecificType(leftOperand, BOOL_TYPE, "/") == false)
         return NULL;
     if (checkNotSpecificType(leftOperand, STRING_TYPE, "/") == false)
@@ -543,6 +602,8 @@ ExpressionNode_t *exprMod(ExpressionNode_t *leftOperand, ExpressionNode_t *right
 {
     if (checkSameType(leftOperand, rightOperand, "%") == false)
         return NULL;
+    if (checkNotVoidType(leftOperand, "%") == false)
+        return NULL;
     if (checkSpecificType(leftOperand, INT_TYPE, "%") == false)
         return NULL;
 
@@ -559,6 +620,8 @@ ExpressionNode_t *exprMod(ExpressionNode_t *leftOperand, ExpressionNode_t *right
 
 ExpressionNode_t *exprPositive(ExpressionNode_t *rightOperand)
 {
+    if (checkNotVoidType(rightOperand, "unary +") == false)
+        return NULL;
     if (checkNotSpecificType(rightOperand, BOOL_TYPE, "unary +") == false)
         return NULL;
     if (checkNotSpecificType(rightOperand, STRING_TYPE, "unary +") == false)
@@ -584,6 +647,8 @@ ExpressionNode_t *exprPositive(ExpressionNode_t *rightOperand)
 
 ExpressionNode_t *exprNegative(ExpressionNode_t *rightOperand)
 {
+    if (checkNotVoidType(rightOperand, "unary -") == false)
+        return NULL;
     if (checkNotSpecificType(rightOperand, BOOL_TYPE, "unary -") == false)
         return NULL;
     if (checkNotSpecificType(rightOperand, STRING_TYPE, "unary -") == false)
@@ -611,6 +676,8 @@ ExpressionNode_t *exprNegative(ExpressionNode_t *rightOperand)
 
 ExpressionNode_t *exprPreIncr(ExpressionNode_t *rightOperand)
 {
+    if (checkNotVoidType(rightOperand, "prefix ++") == false)
+        return NULL;
     if (checkIsLvalue(rightOperand, "prefix ++") == false)
         return NULL;
     if (checkSpecificType(rightOperand, INT_TYPE, "prefix ++") == false)
@@ -621,6 +688,8 @@ ExpressionNode_t *exprPreIncr(ExpressionNode_t *rightOperand)
 
 ExpressionNode_t *exprPreDecr(ExpressionNode_t *rightOperand)
 {
+    if (checkNotVoidType(rightOperand, "prefix --") == false)
+        return NULL;
     if (checkIsLvalue(rightOperand, "prefix --") == false)
         return NULL;
     if (checkSpecificType(rightOperand, INT_TYPE, "prefix --") == false)
@@ -631,6 +700,8 @@ ExpressionNode_t *exprPreDecr(ExpressionNode_t *rightOperand)
 
 ExpressionNode_t *exprPostIncr(ExpressionNode_t *leftOperand)
 {
+    if (checkNotVoidType(leftOperand, "postfix ++") == false)
+        return NULL;
     if (checkIsLvalue(leftOperand, "postfix ++") == false)
         return NULL;
     if (checkSpecificType(leftOperand, INT_TYPE, "postfix ++") == false)
@@ -641,6 +712,8 @@ ExpressionNode_t *exprPostIncr(ExpressionNode_t *leftOperand)
 
 ExpressionNode_t *exprPostDecr(ExpressionNode_t *leftOperand)
 {
+    if (checkNotVoidType(leftOperand, "postfix --") == false)
+        return NULL;
     if (checkIsLvalue(leftOperand, "postfix --") == false)
         return NULL;
     if (checkSpecificType(leftOperand, INT_TYPE, "postfix --") == false)
@@ -659,7 +732,7 @@ ExpressionNode_t *exprArrayIndexOP(char *identifier, const Type_Info_t T, Expres
     // 結果為陣列中的元素
     result->resultTypeInfo.isConst = T.isConst;
     result->resultTypeInfo.type    = T.type;
-    // 記錄 identifier
+    // 記錄 Array Name
     result->sval = identifier;
     // 運算元
     result->rightOperand = indices;
@@ -688,6 +761,53 @@ ExpressionNode_t *exprArrayIndexOP(char *identifier, const Type_Info_t T, Expres
     if (indicesNum != T.dimension) {
         yyerror("Number of indices doesn't match!");
         fprintf(stderr, "\t(ID = %s) is %u-D Array, but there are %u indices\n", identifier, T.dimension, indicesNum);
+        return NULL;
+    }
+
+    return result;
+}
+
+ExpressionNode_t *exprFuncCallOP(char *identifier, const Function_Type_Info_t T, ExpressionNode_t *params)
+{
+    ExpressionNode_t* result = calloc(1, sizeof(ExpressionNode_t));
+    //
+    result->isFuncCallOP = true;
+    // 結果為回傳值
+    result->resultTypeInfo = T.returnType;
+    // 記錄 Function Name
+    result->sval = identifier;
+    // 記錄運算元（參數）
+    result->rightOperand = params;
+
+    unsigned paramsNum = 0;
+    // 檢查參數數量及型別
+    while (params) {
+        if (paramsNum < T.parameterNum) {
+            if (isSameTypeInfo_WithoutConst(T.parameters[paramsNum], params->resultTypeInfo) == false) {
+                yyerror("Type error!");
+                fprintf(stderr, "\tExpect a parameter with type = ");
+                printTypeInfo(stderr, T.parameters[paramsNum]);
+                fprintf(stderr, ", but got (Type = ");
+                printTypeInfo(stderr, params->resultTypeInfo);
+                fprintf(stderr, ") ");
+                dumpExprTree(stderr, params);
+                fprintf(stderr, "\n");
+                return NULL;
+            }
+        }
+        else {
+            yyerror("Too many parameters.");
+            fprintf(stderr, "\tFor Function = %s, expect %d parameters\n", identifier, T.parameterNum);
+            return NULL;
+        }
+
+        paramsNum++;
+        params = params->nextExpression;
+    }
+
+    if (paramsNum < T.parameterNum) {
+        yyerror("Too less parameters.");
+        fprintf(stderr, "\tFor Function = %s, expect %d parameters\n", identifier, T.parameterNum);
         return NULL;
     }
 
