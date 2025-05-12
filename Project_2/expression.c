@@ -8,12 +8,12 @@ void yyerror(char* msg);
 
 // 型別檢查函數 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-// 檢查 N 代表「非常數」的「Identifier」
-static inline bool checkIsNonConstID(ExpressionNode_t* N, const char* op) {
-    if (!N->isID || N->isConstExpr) {
-        yyerror("Expect a variable that can be modified.");
+// 檢查 N 是 lvalue
+static inline bool checkIsLvalue(ExpressionNode_t* N, const char* op) {
+    if (isExprLvalue(N) == false) {
+        yyerror("Expect a lvalue.");
         
-        fprintf(stderr, "\tFor Operator: %s, get (Type = ", op);
+        fprintf(stderr, "\tFor Operator: %s, expect a lvalue but got (Type = ", op);
         printTypeInfo(stderr, N->resultTypeInfo);
         fprintf(stderr, ") ");
         dumpExprTree(stderr, N);
@@ -176,11 +176,16 @@ void freeExprTree(ExpressionNode_t *root)
     free(root);
 }
 
+bool isExprLvalue(ExpressionNode_t *root)
+{
+    return !root->resultTypeInfo.isConst && (root->isID || root->isArrayIndexOP);
+}
+
 // ASSIGN /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ExpressionNode_t *exprAssign(ExpressionNode_t *leftOperand, ExpressionNode_t *rightOperand)
 {
-    if (checkIsNonConstID(leftOperand, "=") == false)
+    if (checkIsLvalue(leftOperand, "=") == false)
         return NULL;
     if (checkSameType(leftOperand, rightOperand, "=") == false)
         return NULL;
@@ -594,7 +599,7 @@ ExpressionNode_t *exprNegative(ExpressionNode_t *rightOperand)
 
 ExpressionNode_t *exprPreIncr(ExpressionNode_t *rightOperand)
 {
-    if (checkIsNonConstID(rightOperand, "prefix ++") == false)
+    if (checkIsLvalue(rightOperand, "prefix ++") == false)
         return NULL;
     if (checkSpecificType(rightOperand, INT_TYPE, "prefix ++") == false)
         return NULL;
@@ -604,7 +609,7 @@ ExpressionNode_t *exprPreIncr(ExpressionNode_t *rightOperand)
 
 ExpressionNode_t *exprPreDecr(ExpressionNode_t *rightOperand)
 {
-    if (checkIsNonConstID(rightOperand, "prefix --") == false)
+    if (checkIsLvalue(rightOperand, "prefix --") == false)
         return NULL;
     if (checkSpecificType(rightOperand, INT_TYPE, "prefix --") == false)
         return NULL;
@@ -614,7 +619,7 @@ ExpressionNode_t *exprPreDecr(ExpressionNode_t *rightOperand)
 
 ExpressionNode_t *exprPostIncr(ExpressionNode_t *leftOperand)
 {
-    if (checkIsNonConstID(leftOperand, "postfix ++") == false)
+    if (checkIsLvalue(leftOperand, "postfix ++") == false)
         return NULL;
     if (checkSpecificType(leftOperand, INT_TYPE, "postfix ++") == false)
         return NULL;
@@ -624,7 +629,7 @@ ExpressionNode_t *exprPostIncr(ExpressionNode_t *leftOperand)
 
 ExpressionNode_t *exprPostDecr(ExpressionNode_t *leftOperand)
 {
-    if (checkIsNonConstID(leftOperand, "postfix --") == false)
+    if (checkIsLvalue(leftOperand, "postfix --") == false)
         return NULL;
     if (checkSpecificType(leftOperand, INT_TYPE, "postfix --") == false)
         return NULL;

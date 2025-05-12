@@ -4,13 +4,14 @@
 
 /**
  * 用來構建運算樹
+ * @details isArrayIndexOP 、 isFuncCallOP 、 isOP 是互斥的
  */
 typedef struct ExpressionNode_t {
     unsigned isArrayIndexOP : 1;  // 是否為陣列存取運算子（如果是的話，sval 存 Array    Name，rightOperand 存所有 index expression 的 linked list）
     unsigned isFuncCallOP : 1;    // 是否為函數呼叫運算子（如果是的話，sval 存 Function Name，rightOperand 存所有 actual paramenter 的 linked list）
-    unsigned isOP : 1;            // 這個節點是運算子（樹的中間節點）
+    unsigned isOP : 1;            // 這個節點是運算子（樹的中間節點，但不是 ArrayIndexOP 也不是 FuncCallOP）
     unsigned isConstExpr : 1;     // 是否為常數表達示（可在編譯時期確定值）
-    unsigned isID : 1;            // 這個節點是否代表一個identifier
+    unsigned isID : 1;            // 這個節點是否代表一個identifier （如果是的話，sval 存 identifier name）
 
     Type_Info_t resultTypeInfo;   // 計算結果是什麼型別
 
@@ -46,6 +47,13 @@ void dumpExprTree(FILE* file, ExpressionNode_t* root);
  * 䆁放運算樹
  */
 void freeExprTree(ExpressionNode_t* root);
+
+/**
+ * Expression 是否為 lvalue （可出現在等號左邊）
+ * 
+ * 判斷標準： 「結果不是 const」 && (「是 identifier」 || 「是 ArrayIndexOP」)
+ */
+bool isExprLvalue(ExpressionNode_t* root);
 
 // ASSIGN
 ExpressionNode_t* exprAssign(ExpressionNode_t* leftOperand, ExpressionNode_t* rightOperand);

@@ -33,11 +33,10 @@ local non-const variable 的初始值可以是任意 expression。
 
 - 所有二元運算子，左右運算元要有***相同型別***
 - ***所有*** 代表 int, float, double, string, bool 及其陣列型別
-- 除非特別標註，否則都支援「常數」的 identifier 出現在 expression
 
 Operator | 接受型別 | 備註
 ---|---|---|
-`= ` | ***所有*** | 左運算元要是「非常數」的 Identifier
+`= ` | ***所有*** | 左運算元要是 lvalue
 LOGIC ||
 `\|\|` | bool |
 `&&` | bool |
@@ -58,7 +57,7 @@ ARITHMETIC ||
 unary `+` | int, float, double
 unary `-` | int, float, double
 INCR && DECR ||
-prefix `++`  | int | 運算元要是「非常數」的 Identifier
-prefix `--`  | int | 運算元要是「非常數」的 Identifier
-postfix `++` | int | 運算元要是「非常數」的 Identifier
-postfix `--` | int | 運算元要是「非常數」的 Identifier
+prefix `++`  | int | 運算元要是 lvalue
+prefix `--`  | int | 運算元要是 lvalue
+postfix `++` | int | 運算元要是 lvalue
+postfix `--` | int | 運算元要是 lvalue

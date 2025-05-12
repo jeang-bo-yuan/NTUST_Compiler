@@ -80,13 +80,13 @@ static Type_Info_t PARAM_Buffer[MAX_PARAMETER_NUM];
 // 優先級高
 
 %%
+// 為了避免 Reduce / Reduce conflict 所以把「函數定義」和「全域變數定義」的前半部提出來
 Program :   Type Array_Dimensions ID 
             { CHECK_NOT_IN_CURRENT_SCOPE($3); Global_Level_ID = $3; } 
             Global_Def_Tail
             { free(Global_Level_ID); Global_Level_ID = NULL; }
             Program
           | /* Empty */ ;
-//Program : Var_Def Program | Func_Def Program | ;
 
 Global_Def_Tail :   // Function 
                     '('
@@ -202,7 +202,54 @@ Non_Empty_Parameter_Def_List_Suffix: ',' Non_Empty_Parameter_List | /* Empty */ 
 // Statements /////////////////////////////////////////////////////////////////////////////
 Statements: One_Statement Statements | /* Empty */ ;
 One_Statement: Var_Def 
-             | Expression ';' { printf("\t\e[36mExpr = \e[m"); dumpExprTree(stdout, $1); puts(""); freeExprTree($1); };
+             | Expression ';'         { printf("\t\e[36mExpr = \e[m");  dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
+             | PRINT Expression ';'   { printf("\t\e[36mprint \e[m");   dumpExprTree(stdout, $2); puts(""); freeExprTree($2); }
+             | PRINTLN Expression ';' { printf("\t\e[36mprintln \e[m"); dumpExprTree(stdout, $2); puts(""); freeExprTree($2); }
+             | RETURN Expression ';'
+             { 
+                if (isSameTypeInfo_WithoutConst(Function_Info.returnType, $2->resultTypeInfo)) {
+                  printf("\t\e[36mreturn \e[m");  dumpExprTree(stdout, $2); puts(""); freeExprTree($2); 
+                }
+                else {
+                  yyerror("Type Error!");
+                  fprintf(stderr, "\tFunction (%s) return type = ", Global_Level_ID);
+                  printTypeInfo(stderr, Function_Info.returnType);
+                  fprintf(stderr, " , but type of expression being returned = ");
+                  printTypeInfo(stderr, $2->resultTypeInfo);
+                  fprintf(stderr, "\n");
+                  YYERROR;
+                }
+             }
+             | RETURN ';'
+             {
+                if (Function_Info.returnType.type == pVoidType) {
+                  printf("\t\e[36mreturn\e[m\n");
+                }
+                else {
+                  yyerror("Type Error!");
+                  fprintf(stderr, "\tFunction (%s) return type = ", Global_Level_ID);
+                  printTypeInfo(stderr, Function_Info.returnType);
+                  fprintf(stderr, " , but nothing is returned.\n");
+                  YYERROR;
+                }
+             }
+             | READ Expression ';' 
+             { 
+                if (isExprLvalue($2)) {
+                  printf("\t\e[36mread \e[m");  dumpExprTree(stdout, $2); puts(""); freeExprTree($2);
+                }
+                else {
+                  yyerror("Cannot read value into rvalue!");
+                  fprintf(stderr, "\tExpect a lvalue, but got (type = ");
+                  printTypeInfo(stderr, $2->resultTypeInfo);
+                  fprintf(stderr, ") ");
+                  dumpExprTree(stderr, $2);
+                  fprintf(stderr, "\n");
+                  YYERROR;
+                }
+             }
+             | ';'
+             ;
 
 // Expression /////////////////////////////////////////////////////////////////////////////
 Expression:
