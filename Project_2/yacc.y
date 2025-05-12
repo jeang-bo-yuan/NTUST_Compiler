@@ -202,7 +202,7 @@ Non_Empty_Parameter_Def_List_Suffix: ',' Non_Empty_Parameter_List | /* Empty */ 
 // Statements /////////////////////////////////////////////////////////////////////////////
 Statements: One_Statement Statements | /* Empty */ ;
 One_Statement: Var_Def 
-             | Expression ';' { printf("\t\e[36mExpr = "); dumpExprTree(stdout, $1); puts("\e[m"); freeExprTree($1); };
+             | Expression ';' { printf("\t\e[36mExpr = \e[m"); dumpExprTree(stdout, $1); puts(""); freeExprTree($1); };
 
 // Expression /////////////////////////////////////////////////////////////////////////////
 Expression:
