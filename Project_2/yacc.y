@@ -26,6 +26,15 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue);
     } \
 }
 
+// 檢查 Symbol Table Node 不是 NULL
+#define CHECK_NODE_NOT_NULL(N, ID) { \
+  if (N == NULL) { \
+    yyerror("Variable or Function undefined!"); \
+    fprintf(stderr, "\tFor ID = %s\n", ID); \
+    YYERROR; \
+  } \
+}
+
 // 是否在 global scope
 #define IN_GLOBAL_SCOPE() (Symbol_Table->parent == NULL)
 
@@ -66,7 +75,8 @@ static Type_Info_t PARAM_Buffer[MAX_PARAMETER_NUM];
 %token <dval> DOUBLE_LITERAL
 %token <sval> STRING_LITERAL ID
 
-%type <expr> Default_Value Expression
+%type <expr> Default_Value Expression FunctionCallOP
+%type <expr> ArrayIndexOP ArrayIndexOP_Suffix
 
 // 優先級低
 %right '='
@@ -90,8 +100,7 @@ Program :   Type Array_Dimensions ID
 
 Global_Def_Tail :   // Function 
                     '('
-                    { 
-                      // Reset
+                    { // Reset + Return Type + 為函數本體建立 symbol table（會儲存參數、區域變數）
                       memset(&Function_Info, 0, sizeof(Function_Info));
                       // Return type
                       if (Type_Info.type == pVoidType && (Type_Info.dimension > 0 || Type_Info.isConst)) {
@@ -107,16 +116,15 @@ Global_Def_Tail :   // Function
                     }
                     Parameter_Def_List
                     ')' 
-                    '{' Statements '}'
-                    {
-                      dump(Symbol_Table);
-                      // 䆁放 Symbol Table，回到 global scope
-                      Symbol_Table = freeSymbolTable(Symbol_Table);
-
-                      // 將函數加入 Symbol Table
-                      SymbolTableNode_t* function = insert(Symbol_Table, Global_Level_ID);
+                    {  // 將函數加入 Global Symbol Table
+                      SymbolTableNode_t* function = insert(Symbol_Table->parent, Global_Level_ID);
                       function->isFunction = true;
                       function->functionTypeInfo = Function_Info;
+                    }
+                    '{' Statements '}'
+                    { // 䆁放 Symbol Table，回到 global scope
+                      dump(Symbol_Table);
+                      Symbol_Table = freeSymbolTable(Symbol_Table);
                     }
                   | // Variable Definition
                     {
@@ -167,6 +175,8 @@ Parameter_Def_List: Non_Empty_Parameter_List
 Non_Empty_Parameter_List: 
                     Type ID Array_Dimensions
                     {
+                      CHECK_NOT_IN_CURRENT_SCOPE($2);
+
                       if (Type_Info.type == pVoidType) {
                         yyerror("Parameter cannot be void type.");
                         fprintf(stderr, "\tFor Parameter (%s)\n", $2);
@@ -269,11 +279,7 @@ Control_Flow: IF '(' Condition_Expression ')' One_Simple_Statement
               {
                 SymbolTableNode_t* N = lookupRecursive(Symbol_Table, $3);
 
-                if (N == NULL) {
-                  yyerror("Variable undefined!");
-                  fprintf(stderr, "\tFor ID = %s\n", $3);
-                  YYERROR;
-                }
+                CHECK_NODE_NOT_NULL(N, $3);
 
                 if (!N->isFunction && isSameTypeInfo(N->typeInfo, INT_TYPE)) {
                   printf("\t\e[36mForeach \e[m%s\n", $3);
@@ -367,6 +373,18 @@ Expression:
           | Expression INCR { if (($$ = exprPostIncr($1)) == NULL) YYERROR; }
           | Expression DECR { if (($$ = exprPostDecr($1)) == NULL) YYERROR; }
           
+          // 陣列存取
+          | ID ArrayIndexOP 
+          { 
+            SymbolTableNode_t* N = lookupRecursive(Symbol_Table, $1); 
+            CHECK_NODE_NOT_NULL(N, $1);
+
+            if (($$ = exprArrayIndexOP($1, N->typeInfo, $2)) == NULL)
+              YYERROR;
+
+            // Note: 不用 free($1)，因為 freeExprTree 會把它清掉
+          }
+         // | ID FunctionCallOP
 
         /**
         * Literal & ID
@@ -423,11 +441,8 @@ Expression:
           {
             SymbolTableNode_t *N = lookupRecursive(Symbol_Table, $1);
 
-            if (N == NULL) {
-              yyerror("Variable undefined.");
-              fprintf(stderr, "\tFor ID = %s\n", $1);
-              YYERROR;
-            }
+            CHECK_NODE_NOT_NULL(N, $1);
+            
             if (N->isFunction) {
               yyerror("Function name cannot exist alone.");
               fprintf(stderr, "\tFor ID = %s\n", $1);
@@ -454,6 +469,16 @@ Expression:
             }
           }
           ;
+
+ArrayIndexOP: '[' Expression ']' ArrayIndexOP_Suffix
+              {
+                $2->nextExpression = $4; // 將所有 index 的 expression 串成 linked list
+                $$ = $2;
+              };
+
+ArrayIndexOP_Suffix: ArrayIndexOP  { $$ = $1; }
+                   | /* Empty */   { $$ = NULL; } ;
+
 
 
 // 型別 ///////////////////////////////////////////////////////////////////////////////////

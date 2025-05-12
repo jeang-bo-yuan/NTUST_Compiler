@@ -1,3 +1,6 @@
+/**
+*  展示 while , if / else, for, foreach
+*/
 const int MAX = 10926 / 10926 * 10;
 
 int a(int b){}

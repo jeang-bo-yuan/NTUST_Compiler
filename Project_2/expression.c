@@ -125,11 +125,21 @@ void dumpExprTree(FILE* file, ExpressionNode_t *root)
     if (root == NULL)
         return;
 
-    if (root->isOP) {
+    if (root->isArrayIndexOP) {
+        fprintf(file, "%s", root->sval);  // Array Name
+
+        // index 組成的 linked list 放在 root->rightOperand                移至下個 index
+        for (ExpressionNode_t* indexHead = root->rightOperand; indexHead; indexHead = indexHead->nextExpression) {
+            fprintf(file, "[");
+            dumpExprTree(file, indexHead);
+            fprintf(file, "]");
+        }
+    }
+    else if (root->isOP) {
         fprintf(file, " ( ");
-        dumpExprTree(file, root->leftOperand);
-        fprintf(file, " %s ", root->OP);
-        dumpExprTree(file, root->rightOperand);
+        dumpExprTree(file, root->leftOperand);   // 左運算元
+        fprintf(file, " %s ", root->OP);         // 運算子
+        dumpExprTree(file, root->rightOperand);  // 右運算元
         fprintf(file, " ) ");
     }
     // leaf node ///////////////////////////////////
@@ -141,6 +151,7 @@ void dumpExprTree(FILE* file, ExpressionNode_t *root)
     if (!root->isConstExpr)
         return;
 
+    // 加上 => 以區分原始 token 及運算結果
     if (root->isID || root->isOP)
         fprintf(file, "\e[35m=>");
 
@@ -162,6 +173,7 @@ void freeExprTree(ExpressionNode_t *root)
 
     freeExprTree(root->leftOperand);
     freeExprTree(root->rightOperand);
+    freeExprTree(root->nextExpression);
 
     // 䆁放 ID / Array Name / Function Name 的字串
     if (root->isID || root->isArrayIndexOP || root->isFuncCallOP)
@@ -635,4 +647,49 @@ ExpressionNode_t *exprPostDecr(ExpressionNode_t *leftOperand)
         return NULL;
 
     return allocNewOperatorNode(INT_TYPE, "--", leftOperand, NULL);
+}
+
+// Special /////////////////////////////////////////////////////////////////
+
+ExpressionNode_t *exprArrayIndexOP(char *identifier, const Type_Info_t T, ExpressionNode_t *indices)
+{
+    ExpressionNode_t* result = calloc(1, sizeof(ExpressionNode_t));
+    //
+    result->isArrayIndexOP = true;
+    // 結果為陣列中的元素
+    result->resultTypeInfo.isConst = T.isConst;
+    result->resultTypeInfo.type    = T.type;
+    // 記錄 identifier
+    result->sval = identifier;
+    // 運算元
+    result->rightOperand = indices;
+
+    unsigned indicesNum = 0;
+    // 檢查 indices 都是 int 且長度 == T.dimension
+    while (indices) {
+        indicesNum++;
+
+        // 不是 Int
+        if (isSameTypeInfo_WithoutConst(indices->resultTypeInfo, INT_TYPE) == false) {
+            yyerror("Type Error!");
+            fprintf(stderr, "\tExpect a int for array index, but got (Type = ");
+            printTypeInfo(stderr, indices->resultTypeInfo);
+            fprintf(stderr, ") ");
+            dumpExprTree(stderr, indices);
+            fprintf(stderr, "\n");
+            
+            return NULL;
+        }
+
+        indices = indices->nextExpression;
+    }
+    
+    // 長度不一致
+    if (indicesNum != T.dimension) {
+        yyerror("Number of indices doesn't match!");
+        fprintf(stderr, "\t(ID = %s) is %u-D Array, but there are %u indices\n", identifier, T.dimension, indicesNum);
+        return NULL;
+    }
+
+    return result;
 }

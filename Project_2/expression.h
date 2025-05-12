@@ -5,6 +5,9 @@
 /**
  * 用來構建運算樹
  * @details isArrayIndexOP 、 isFuncCallOP 、 isOP 是互斥的
+ * 
+ *          isConstExpr 為真 => 輸入的token為literal || 輸入的token為const variable || 一個以上的ConstExpr作運算
+ *          「陣列」、「陣列存取」和「函數的回傳值」不會是ConstExpr（太麻煩 = = ）
  */
 typedef struct ExpressionNode_t {
     unsigned isArrayIndexOP : 1;  // 是否為陣列存取運算子（如果是的話，sval 存 Array    Name，rightOperand 存所有 index expression 的 linked list）
@@ -81,4 +84,6 @@ ExpressionNode_t* exprPreIncr(ExpressionNode_t* rightOperand);
 ExpressionNode_t* exprPreDecr(ExpressionNode_t* rightOperand);
 ExpressionNode_t* exprPostIncr(ExpressionNode_t* leftOperand);
 ExpressionNode_t* exprPostDecr(ExpressionNode_t* leftOperand);
+// ArrayIndexOP
+ExpressionNode_t* exprArrayIndexOP(char* identifier, const Type_Info_t T, ExpressionNode_t* indices);
 

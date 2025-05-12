@@ -1,3 +1,6 @@
+/**
+*  展示 Block 對 scope 的影響
+*/
 const int A = 100;
 
 main() {
