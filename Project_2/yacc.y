@@ -88,7 +88,16 @@ Program :   Type Array_Dimensions ID
 Global_Def_Tail :   // Function 
                     '('
                     { 
+                      // Reset
                       memset(&Function_Info, 0, sizeof(Function_Info));
+                      // Return type
+                      if (Type_Info.type == pVoidType && (Type_Info.dimension > 0 || Type_Info.isConst)) {
+                        yyerror("Invalid Return Type");
+                        fprintf(stderr, "\t");
+                        printTypeInfo(stderr, Type_Info);
+                        fprintf(stderr, " is invalid\n");
+                        YYERROR;
+                      }
                       Function_Info.returnType = Type_Info;
                       // 為函數本體建立 symbol table（會儲存參數、區域變數）
                       Symbol_Table = create(Symbol_Table);
@@ -155,6 +164,12 @@ Parameter_Def_List: Non_Empty_Parameter_List
 Non_Empty_Parameter_List: 
                     Type ID Array_Dimensions
                     {
+                      if (Type_Info.type == pVoidType) {
+                        yyerror("Parameter cannot be void type.");
+                        fprintf(stderr, "\tFor Parameter (%s)\n", $2);
+                        YYERROR;
+                      }
+
                       ++Function_Info.parameterNum;
 
                       if (Function_Info.parameterNum > MAX_PARAMETER_NUM) {
@@ -317,7 +332,7 @@ PType: BOOL         { Type_Info.type = pBoolType; }
      | DOUBLE       { Type_Info.type = pDoubleType; }
      | STRING_yacc  { Type_Info.type = pStringType; }
      | VOID         { Type_Info.type = pVoidType; }
-     |              { yyerror("Missing Type"); YYERROR; } ;
+     |              { Type_Info.type = pVoidType; } ;
 
 // Array
 Array_Dimensions: { // 單純為了初始化
