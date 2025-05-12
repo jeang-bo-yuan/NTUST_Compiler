@@ -68,6 +68,7 @@ static char string_buf[MAX_LINE_LENG];
 <STRING>\n        { strcat(string_buf, "\n"); REJECT; }
 
 "."		{ token('.'); }
+".."            { token(RANGE); }
 ","		{ token(','); }
 ":"		{ token(':'); }
 ";"		{ token(';'); }

@@ -61,3 +61,8 @@ bool isSameTypeInfo_WithoutConst(const Type_Info_t T1, const Type_Info_t T2)
 
     return false;
 }
+
+bool isSameTypeInfo(const Type_Info_t T1, const Type_Info_t T2)
+{
+    return isSameTypeInfo_WithoutConst(T1, T2) && T1.isConst == T2.isConst;
+}

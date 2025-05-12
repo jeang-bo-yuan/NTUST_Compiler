@@ -57,7 +57,7 @@ static Type_Info_t PARAM_Buffer[MAX_PARAMETER_NUM];
 
 // Keyword
 %token BOOL DOUBLE FLOAT INT STRING_yacc
-%token BREAK CASE CHAR CONST CONTINUE DEFAULT DO ELSE EXTERN FALSE FOR FOREACH IF PRINT PRINTLN READ RETURN SWITCH TRUE VOID WHILE
+%token BREAK CASE CHAR CONST CONTINUE DEFAULT DO ELSE EXTERN FALSE FOR FOREACH IF PRINT PRINTLN RANGE READ RETURN SWITCH TRUE VOID WHILE
 // Operator
 %token INCR DECR EQ GE LE NE AND OR
 // Literal
@@ -200,9 +200,12 @@ Non_Empty_Parameter_List:
 Non_Empty_Parameter_Def_List_Suffix: ',' Non_Empty_Parameter_List | /* Empty */ ;
 
 // Statements /////////////////////////////////////////////////////////////////////////////
-Statements: One_Statement Statements | /* Empty */ ;
-One_Statement: Var_Def 
-             | Expression ';'         { printf("\t\e[36mExpr = \e[m");  dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
+Statements: One_Simple_Statement Statements 
+          | Var_Def Statements
+          | /* Empty */ ;
+
+One_Simple_Statement:
+               Expression ';'         { printf("\t\e[36mExpr = \e[m");  dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
              | PRINT Expression ';'   { printf("\t\e[36mprint \e[m");   dumpExprTree(stdout, $2); puts(""); freeExprTree($2); }
              | PRINTLN Expression ';' { printf("\t\e[36mprintln \e[m"); dumpExprTree(stdout, $2); puts(""); freeExprTree($2); }
              | RETURN Expression ';'
@@ -249,7 +252,87 @@ One_Statement: Var_Def
                 }
              }
              | ';'
+             | Block_of_Statements
+             | Control_Flow
              ;
+
+Block_of_Statements: '{'         { Symbol_Table = create(Symbol_Table); } 
+                     Statements 
+                     '}'         { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
+                     ;
+
+Control_Flow: IF '(' Condition_Expression ')' One_Simple_Statement
+            | IF '(' Condition_Expression ')' One_Simple_Statement ELSE One_Simple_Statement
+            | WHILE '(' Condition_Expression ')' One_Simple_Statement
+            | FOR '(' For_Initial_Expression ';' For_Condition_Expression ';' For_Update_Expression ')' One_Simple_Statement
+            | FOREACH '(' ID ':' Integer_Expression RANGE Integer_Expression ')'
+              {
+                SymbolTableNode_t* N = lookupRecursive(Symbol_Table, $3);
+
+                if (N == NULL) {
+                  yyerror("Variable undefined!");
+                  fprintf(stderr, "\tFor ID = %s\n", $3);
+                  YYERROR;
+                }
+
+                if (!N->isFunction && isSameTypeInfo(N->typeInfo, INT_TYPE)) {
+                  printf("\t\e[36mForeach \e[m%s\n", $3);
+                  free($3);
+                }
+                else {
+                  yyerror("Type Error!");
+                  fprintf(stderr, "\tExpect a identifier of int type, but got (type = ");
+                  if (N->isFunction)
+                    printFunctionTypeInfo(stderr, N->functionTypeInfo);
+                  else
+                    printTypeInfo(stderr, N->typeInfo);
+                  fprintf(stderr, ", ID = %s)\n", $3);
+                  YYERROR;
+                }
+              }
+              One_Simple_Statement
+            ;
+
+For_Initial_Expression:    Expression { printf("\t\e[36mInitial Expression =  \e[m"); dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
+                         | /* Empty */;
+For_Condition_Expression : Condition_Expression 
+                         | /* Empty */ { puts("\t\e[36mCondition =  true\e[m"); };
+For_Update_Expression:     Expression  { printf("\t\e[36mUpdate Expression =  \e[m");  dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
+                         | /* Empty */;
+
+Condition_Expression: Expression 
+                      {
+                        if (isSameTypeInfo_WithoutConst($1->resultTypeInfo, BOOL_TYPE)) {
+                          printf("\t\e[36mCondition = \e[m"); dumpExprTree(stdout, $1); puts(""); freeExprTree($1);
+                        }
+                        else {
+                          yyerror("Type error!");
+                          fprintf(stderr, "\tExpect a boolean expression, but got (Type = ");
+                          printTypeInfo(stderr, $1->resultTypeInfo);
+                          fprintf(stderr, ") ");
+                          dumpExprTree(stderr, $1);
+                          fprintf(stderr, "\n");
+                          YYERROR;
+                        }
+                      }
+                      ;
+
+Integer_Expression: Expression 
+                    {
+                      if (isSameTypeInfo_WithoutConst($1->resultTypeInfo, INT_TYPE)) {
+                        printf("\t\e[36mInteger Expression = \e[m"); dumpExprTree(stdout, $1); puts(""); freeExprTree($1);
+                      }
+                      else {
+                        yyerror("Type error!");
+                        fprintf(stderr, "\tExpect a integer expression, but got (Type = ");
+                        printTypeInfo(stderr, $1->resultTypeInfo);
+                        fprintf(stderr, ") ");
+                        dumpExprTree(stderr, $1);
+                        fprintf(stderr, "\n");
+                        YYERROR;
+                      }
+                    }
+                    ;
 
 // Expression /////////////////////////////////////////////////////////////////////////////
 Expression:

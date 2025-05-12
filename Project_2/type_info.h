@@ -57,3 +57,7 @@ void printFunctionTypeInfo(FILE* file, const Function_Type_Info_t T);
  * 若不考慮 isConst，檢查 T1 和 T2 是否是一樣的型別
  */
 bool isSameTypeInfo_WithoutConst(const Type_Info_t T1, const Type_Info_t T2);
+/**
+ * 檢查 T1 和 T2 是否完全一致
+ */
+bool isSameTypeInfo(const Type_Info_t T1, const Type_Info_t T2);

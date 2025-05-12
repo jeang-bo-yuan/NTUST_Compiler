@@ -61,3 +61,39 @@ prefix `++`  | int | 運算元要是 lvalue
 prefix `--`  | int | 運算元要是 lvalue
 postfix `++` | int | 運算元要是 lvalue
 postfix `--` | int | 運算元要是 lvalue
+
+# Statement
+
+```
+expression;
+
+print expression;
+println expression;
+
+read lvalue;
+
+return;
+return expression;
+
+{
+    statements...
+}
+```
+
+控制結構
+
+```
+if (bool_expression)
+    ...
+else
+    ...
+
+while (bool_expression)
+    ...
+
+for (expression ; bool_expression ; expression)
+    ...
+
+foreach (identifier : int_expression .. int_expression)
+    ...
+```
