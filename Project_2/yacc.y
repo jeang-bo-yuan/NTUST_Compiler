@@ -35,6 +35,28 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue);
   } \
 }
 
+// 檢查 expression 的結果不是 void
+#define CHECK_NOT_VOID_EXPR(E) { \
+  if (E->resultTypeInfo.type == pVoidType) { \
+    yyerror("Procedural call is not allowed here!"); \
+    fprintf(stderr, "\tGot: "); \
+    dumpExprTree(stderr, E); \
+    fprintf(stderr, "\n"); \
+    YYERROR; \
+  } \
+}
+
+// 檢查 expression 擁有副作用（計算結果有被使用）
+#define CHECK_EXPR_HAS_SIDE_EFFECT(E) { \
+  if (! isExprHasSideEffect(E) ) { \
+    yyerror("Expression result is not used!");\
+    fprintf(stderr, "\tFor Expr = "); \
+    dumpExprTree(stderr, E); \
+    fprintf(stderr, "\n"); \
+    YYERROR; \
+  } \
+}
+
 // 是否在 global scope
 #define IN_GLOBAL_SCOPE() (Symbol_Table->parent == NULL)
 
@@ -216,9 +238,9 @@ Statements: One_Simple_Statement Statements
           | /* Empty */ ;
 
 One_Simple_Statement:
-               Expression ';'         { printf("\t\e[36mExpr = \e[m");  dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
-             | PRINT Expression ';'   { printf("\t\e[36mprint \e[m");   dumpExprTree(stdout, $2); puts(""); freeExprTree($2); }
-             | PRINTLN Expression ';' { printf("\t\e[36mprintln \e[m"); dumpExprTree(stdout, $2); puts(""); freeExprTree($2); }
+               Expression ';'         { CHECK_EXPR_HAS_SIDE_EFFECT($1); printf("\t\e[36mExpr = \e[m");  dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
+             | PRINT Expression ';'   { CHECK_NOT_VOID_EXPR($2);        printf("\t\e[36mprint \e[m");   dumpExprTree(stdout, $2); puts(""); freeExprTree($2); }
+             | PRINTLN Expression ';' { CHECK_NOT_VOID_EXPR($2);        printf("\t\e[36mprintln \e[m"); dumpExprTree(stdout, $2); puts(""); freeExprTree($2); }
              | RETURN Expression ';'
              { 
                 if (isSameTypeInfo_WithoutConst(Function_Info.returnType, $2->resultTypeInfo)) {

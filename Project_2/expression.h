@@ -57,6 +57,12 @@ void freeExprTree(ExpressionNode_t* root);
  * 判斷標準： 「結果不是 const」 && (「是 identifier」 || 「是 ArrayIndexOP」)
  */
 bool isExprLvalue(ExpressionNode_t* root);
+/**
+ * Expression 是否有副作用
+ * 
+ * 判斷標準： 最上層節點為 =, ++, -- 或 procedural call
+ */
+bool isExprHasSideEffect(ExpressionNode_t* root);
 
 // ASSIGN
 ExpressionNode_t* exprAssign(ExpressionNode_t* leftOperand, ExpressionNode_t* rightOperand);

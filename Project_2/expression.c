@@ -224,6 +224,26 @@ bool isExprLvalue(ExpressionNode_t *root)
     return !root->resultTypeInfo.isConst && (root->isID || root->isArrayIndexOP);
 }
 
+bool isExprHasSideEffect(ExpressionNode_t *root)
+{
+    // procedural call
+    if (root->isFuncCallOP && root->resultTypeInfo.type == pVoidType)
+        return true;
+
+    //有副作用的 operator
+    if (root->isOP) {
+        if (strcmp(root->OP, "=") == 0)
+            return true;
+        if (strcmp(root->OP, "++") == 0)
+            return true;
+        if (strcmp(root->OP, "--") == 0)
+            return true;
+    }
+
+    return false;
+}
+
+
 // ASSIGN /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ExpressionNode_t *exprAssign(ExpressionNode_t *leftOperand, ExpressionNode_t *rightOperand)
