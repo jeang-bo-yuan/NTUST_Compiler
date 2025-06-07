@@ -1,0 +1,7 @@
+y.tab.c
+y.tab.h
+lex.yy.c
+parser
+.vscode/
+*.zip
+y.output
