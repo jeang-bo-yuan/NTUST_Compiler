@@ -200,6 +200,10 @@ static void DumpNode(struct SymbolTableNode_t* N) {
         if (N->isParameter)
             printf("  (Parameter)");
 
+        if (N->localVariableIndex >= 0) {
+            printf(" (local variable index = %d)", N->localVariableIndex);
+        }
+
         printf("\n");
     }
 
@@ -223,4 +227,23 @@ void dump(const struct SymbolTable_t* table) {
     puts("");
 }
 
+/////////////////////////////////////////////////
 
+void assignIndex(SymbolTableNode_t *node, SymbolTable_t *table)
+{
+    if (table->parent == NULL || node->isFunction || (node->typeInfo.isConst && !node->isParameter)) {
+        node->localVariableIndex = -1;
+        return;
+    }
+
+    node->localVariableIndex = table->nextLocalVariableIndex;
+
+    switch (node->typeInfo.type) {
+    case pIntType: case pBoolType: case pFloatType:
+        table->nextLocalVariableIndex += 1;
+        break;
+    case pDoubleType:
+        table->nextLocalVariableIndex += 2;
+        break;
+    }
+}

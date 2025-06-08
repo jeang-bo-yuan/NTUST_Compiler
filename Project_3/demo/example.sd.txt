@@ -1,5 +1,6 @@
 int a;
-int add (int a, int b)
+const int A = 10;
+int add (const int a, const int b)
 {
   return a+b;
 }
@@ -7,6 +8,7 @@ int add (int a, int b)
 main()
 {
   int c;
+  const int xx = 1000 / 10;
   a = 5;
   c = add(a, 10);
   if (c > 10)

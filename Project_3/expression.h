@@ -28,13 +28,16 @@ typedef struct ExpressionNode_t {
         char OP[8];  // -> operator
     };
 
-    // 編譯時期計算結果（只有 isConstExpr == true 時，這裡的值才有意義）
     union {
+        // 編譯時期計算結果（只有 isConstExpr == true 時，這裡的值才有意義）
         int cIval;    // -> int
         double cDval; // -> double
         float cFval;  // -> float
         bool cBval;  // -> bool
         char* cSval;  // -> string
+
+        // local variable index（當 isID == true && isConstExpr == fasle，這值才有意義）
+        int localVariableIndex;
     };
     
     struct ExpressionNode_t* leftOperand;

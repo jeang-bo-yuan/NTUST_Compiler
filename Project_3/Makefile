@@ -1,8 +1,9 @@
 parser: lex.yy.c y.tab.c \
         symbol_table.h symbol_table.c\
 		type_info.h type_info.c \
-		expression.h expression.c
-	gcc -g -o parser lex.yy.c y.tab.c symbol_table.c type_info.c expression.c
+		expression.h expression.c \
+		exprToJasm.h exprToJasm.c
+	gcc -g -o parser lex.yy.c y.tab.c symbol_table.c type_info.c expression.c exprToJasm.c
 
 lex.yy.c: lex.l
 	lex lex.l

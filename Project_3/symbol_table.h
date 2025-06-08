@@ -9,11 +9,12 @@
 // Symbol Table ///////////////////////////////////////////////////////////////////
 
 typedef struct SymbolTableNode_t {
-    bool isEnd;
-    bool isFunction;   // 是否是函數
-    bool isParameter;  // 是否是參數
-    bool hasDefaultValue;           // 是否有預設值
-    bool defaultValueIsConstExpr;   // 預設值是 constexpr
+    bool isEnd : 1;
+    bool isFunction : 1;   // 是否是函數
+    bool isParameter : 1;  // 是否是參數
+    bool hasDefaultValue : 1;           // 是否有預設值
+    bool defaultValueIsConstExpr : 1;   // 預設值是 constexpr
+    int localVariableIndex;  // JASM 中區域變數的 index，只有當 `不是全域變數 && !isFunction && (!typeInfo.isConst || isParameter)` 時才有 >= 0 的值，否則是 -1
     
     union {
         Type_Info_t          typeInfo;
@@ -38,6 +39,7 @@ typedef struct SymbolTableNode_t {
  * @details trie
  */
 typedef struct SymbolTable_t {
+    unsigned nextLocalVariableIndex; // 下一個可分配的區域變數 index
     struct SymbolTable_t* parent;
     struct SymbolTableNode_t* root[ID_FIRST_CHARS];
 } SymbolTable_t;
@@ -73,3 +75,8 @@ SymbolTableNode_t* insert(SymbolTable_t* table, const char* S);
  * 印出
  */
 void dump(const SymbolTable_t* table);
+
+/**
+ * 替 node 指定區域變數的 index
+ */
+void assignIndex(SymbolTableNode_t* node, SymbolTable_t* table);

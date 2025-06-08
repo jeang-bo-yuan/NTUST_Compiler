@@ -12,7 +12,7 @@ struct SymbolTable_t* Symbol_Table = NULL;
 // 輸出的 jasm 檔
 static FILE* JASM_FILE = NULL;
 // 輸出的 class 名稱
-char* CLASS_NAME = NULL;
+char* JASM_CLASS_NAME = NULL;
 
 int yylex();
 void yyerror(char*);
@@ -148,6 +148,7 @@ Global_Def_Tail :   // Function
                       SymbolTableNode_t* function = insert(Symbol_Table->parent, Global_Level_ID);
                       function->isFunction = true;
                       function->functionTypeInfo = Function_Info;
+                      assignIndex(function, Symbol_Table->parent);
 
                       // JASM Function //////////////////////////////////////////////////////////////////
                       // 檢查 main()
@@ -248,6 +249,7 @@ Non_Empty_Parameter_List:
                       param->isFunction = false;
                       param->isParameter = true;
                       param->typeInfo = Type_Info;
+                      assignIndex(param, Symbol_Table);
 
                       free($2);
 
@@ -637,6 +639,7 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue) {
   SymbolTableNode_t* Node = insert(Symbol_Table, identifier);
   Node->isFunction = false;
   Node->typeInfo = Type_Info;
+  assignIndex(Node, Symbol_Table);
 
   // 印出預設值
   if (defaultValue) {
@@ -699,25 +702,30 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue) {
   }
 
   // 新增 JASM code
-  if (IN_GLOBAL_SCOPE()) {
-    fprintf(JASM_FILE, "/* ");
-    printTypeInfo(JASM_FILE, Type_Info);
-    fprintf(JASM_FILE, " %s */\n",           identifier);
-    fprintf(JASM_FILE, "field static %s %s", JASM_TypeStr[Type_Info.type], identifier);
+  if (!Type_Info.isConst) {
+    // Global Variable
+    if (IN_GLOBAL_SCOPE()) {
+      fprintf(JASM_FILE, "/* ");
+      printTypeInfo(JASM_FILE, Type_Info);
+      fprintf(JASM_FILE, " %s */\n",           identifier);
+      fprintf(JASM_FILE, "field static %s %s", JASM_TypeStr[Type_Info.type], identifier);
 
-    if (defaultValue) {
-      switch (Type_Info.type) {
-        case pIntType:    fprintf(JASM_FILE, " = %d",  defaultValue->cIval); break;
-        case pFloatType:  fprintf(JASM_FILE, " = %ef", defaultValue->cFval); break;
-        case pDoubleType: fprintf(JASM_FILE, " = %e",  defaultValue->cDval); break;
-        case pBoolType:   fprintf(JASM_FILE, " = %d",  defaultValue->cBval); break;
+      if (defaultValue) {
+        switch (Type_Info.type) {
+          case pIntType:    fprintf(JASM_FILE, " = %d",  defaultValue->cIval); break;
+          case pFloatType:  fprintf(JASM_FILE, " = %ef", defaultValue->cFval); break;
+          case pDoubleType: fprintf(JASM_FILE, " = %e",  defaultValue->cDval); break;
+          case pBoolType:   fprintf(JASM_FILE, " = %d",  defaultValue->cBval); break;
+        }
+      }
+
+      fprintf(JASM_FILE, "\n\n");
+    }
+    else {
+      if (defaultValue) {
+        // TODO
       }
     }
-
-    fprintf(JASM_FILE, "\n\n");
-  }
-  else {
-
   }
 
   return true;
@@ -742,23 +750,23 @@ void openJasmAndPrintHeader(const char* sD_filename) {
   
   // class 名稱
   if (len > 0) {
-    CLASS_NAME = calloc(len + 1 /* \0 */, sizeof(char));
-    strncpy(CLASS_NAME, sD_filename, len);
+    JASM_CLASS_NAME = calloc(len + 1 /* \0 */, sizeof(char));
+    strncpy(JASM_CLASS_NAME, sD_filename, len);
   }
   else {
-    CLASS_NAME = calloc(sizeof("Program") / sizeof(char), sizeof(char));
-    strcpy(CLASS_NAME, "Program");
+    JASM_CLASS_NAME = calloc(sizeof("Program") / sizeof(char), sizeof(char));
+    strcpy(JASM_CLASS_NAME, "Program");
     len = sizeof("Program") / sizeof(char) - 1;
   }
 
   // jasm 檔名 = class 名稱 + .jasm
   jasm_filename = calloc(len + 6 /* .jasm\0 */, sizeof(char));
-  strcpy(jasm_filename, CLASS_NAME);
+  strcpy(jasm_filename, JASM_CLASS_NAME);
   strcat(jasm_filename, ".jasm");
   JASM_FILE = fopen(jasm_filename, "w");
 
   // print header
-  fprintf(JASM_FILE, "class %s\n{\n", CLASS_NAME);
+  fprintf(JASM_FILE, "class %s\n{\n", JASM_CLASS_NAME);
 
   free(jasm_filename);
 }
@@ -807,7 +815,7 @@ int main (int argc, char *argv[])
         Symbol_Table = freeSymbolTable(Symbol_Table);
     }
 
-    fprintf(JASM_FILE, "} /* end of class %s */\n", CLASS_NAME);
+    fprintf(JASM_FILE, "} /* end of class %s */\n", JASM_CLASS_NAME);
     fclose(JASM_FILE);
-    free(CLASS_NAME);
+    free(JASM_CLASS_NAME);
 }
