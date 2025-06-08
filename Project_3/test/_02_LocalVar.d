@@ -3,17 +3,26 @@ int BBB = 1000 / 25;
 
 main() {
     int a = AAA;
-    float b = 2.0f;
+    print a;
+    print "  ";
+    
+    float b = 1.0e3f;
+    print b;
+    print "  ";
+
     double c = 3.0;
+    print c;
+    print "  ";
+
     bool d = true;
-    const int CCC = 1000 + 1;
+    println d;
 
-    if (true) {
-        int a = BBB;
-
-        {
-            int c = CCC;
-            int d = a;
-        }
+    {
+        int TMP;
+        TMP = a;
+        print "a = ";
+        println a = BBB;
+        print "BBB = ";
+        println BBB = TMP;
     }
 }

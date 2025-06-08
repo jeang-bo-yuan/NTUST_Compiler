@@ -268,9 +268,9 @@ Statements: One_Simple_Statement Statements
           | /* Empty */ ;
 
 One_Simple_Statement:
-               Expression ';'         { CHECK_EXPR_HAS_SIDE_EFFECT($1); printf("\t\e[36mExpr = \e[m");  dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
-             | PRINT Expression ';'   { CHECK_NOT_VOID_EXPR($2);        printf("\t\e[36mprint \e[m");   dumpExprTree(stdout, $2); puts(""); freeExprTree($2); }
-             | PRINTLN Expression ';' { CHECK_NOT_VOID_EXPR($2);        printf("\t\e[36mprintln \e[m"); dumpExprTree(stdout, $2); puts(""); freeExprTree($2); }
+               Expression ';'         { CHECK_EXPR_HAS_SIDE_EFFECT($1); printf("\t\e[36mExpr = \e[m");  dumpExprTree(stdout, $1); puts(""); exprToJasm($1);    popExprResult($1->resultTypeInfo); freeExprTree($1); }
+             | PRINT Expression ';'   { CHECK_NOT_VOID_EXPR($2);        printf("\t\e[36mprint \e[m");   dumpExprTree(stdout, $2); puts(""); printToJasm($2);                                      freeExprTree($2); }
+             | PRINTLN Expression ';' { CHECK_NOT_VOID_EXPR($2);        printf("\t\e[36mprintln \e[m"); dumpExprTree(stdout, $2); puts(""); printlnToJasm($2);                                    freeExprTree($2); }
              | RETURN Expression ';'
              { 
                 if (isSameTypeInfo_WithoutConst(Function_Info.returnType, $2->resultTypeInfo)) {
@@ -728,6 +728,7 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue) {
     Node->hasDefaultValue = true;
     Node->expr = defaultValue;
     assignToJasm(identifier, Node->localVariableIndex, Node->expr);
+    popExprResult(Node->typeInfo);
   }
 
   return true;
