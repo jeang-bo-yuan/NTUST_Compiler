@@ -20,6 +20,13 @@ void andToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
 void notToJasm(ExpressionNode_t* R);
 
 // COMPARE ////////////////////////
+void lt_ToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void le_ToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void eq_ToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void ge_ToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void gt_ToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void ne_ToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+
 // ARITHMETIC /////////////////////
 void addToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
 void subToJasm(ExpressionNode_t* L, ExpressionNode_t* R);

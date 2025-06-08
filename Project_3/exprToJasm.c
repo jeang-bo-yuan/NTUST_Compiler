@@ -74,6 +74,24 @@ void exprToJasm(ExpressionNode_t *expr)
         }
 
         // Compare
+        else if (strcmp(expr->OP, "<") == 0) {
+            lt_ToJasm(expr->leftOperand, expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, "<=") == 0) {
+            le_ToJasm(expr->leftOperand, expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, "==") == 0) {
+            eq_ToJasm(expr->leftOperand, expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, ">=") == 0) {
+            ge_ToJasm(expr->leftOperand, expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, ">") == 0) {
+            gt_ToJasm(expr->leftOperand, expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, "!=") == 0) {
+            ne_ToJasm(expr->leftOperand, expr->rightOperand);
+        }
         
         // Arithmetic
         else if (strcmp(expr->OP, "+") == 0) {
@@ -164,6 +182,142 @@ void notToJasm(ExpressionNode_t *R)
 {
     exprToJasm(R);
     fprintf(JASM_FILE, "iconst_1\nixor\n");
+}
+
+// COMPARE //////////////////////////////////////////////////////////////////////////////
+
+static unsigned Label_Id = 0;
+
+void lt_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+
+    // compute L - R
+    switch (L->resultTypeInfo.type) {
+    case pIntType:    fprintf(JASM_FILE, "isub\n");  break;
+    case pFloatType:  fprintf(JASM_FILE, "fcmpg\n"); break;
+    case pDoubleType: fprintf(JASM_FILE, "dcmpg\n"); break;
+    }
+
+    fprintf(JASM_FILE, "iflt TRUE%d\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_0\n");
+    fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
+    fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_1\n");
+    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+
+    ++Label_Id;
+}
+
+void le_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+
+    // compute L - R
+    switch (L->resultTypeInfo.type) {
+    case pIntType:    fprintf(JASM_FILE, "isub\n");  break;
+    case pFloatType:  fprintf(JASM_FILE, "fcmpg\n"); break;
+    case pDoubleType: fprintf(JASM_FILE, "dcmpg\n"); break;
+    }
+
+    fprintf(JASM_FILE, "ifle TRUE%d\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_0\n");
+    fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
+    fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_1\n");
+    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+
+    ++Label_Id;
+}
+
+void eq_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+
+    // compute L - R
+    switch (L->resultTypeInfo.type) {
+    case pIntType:    fprintf(JASM_FILE, "isub\n");  break;
+    case pFloatType:  fprintf(JASM_FILE, "fcmpg\n"); break;
+    case pDoubleType: fprintf(JASM_FILE, "dcmpg\n"); break;
+    }
+
+    fprintf(JASM_FILE, "ifeq TRUE%d\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_0\n");
+    fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
+    fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_1\n");
+    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+
+    ++Label_Id;
+}
+
+void ge_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+
+    // compute L - R
+    switch (L->resultTypeInfo.type) {
+    case pIntType:    fprintf(JASM_FILE, "isub\n");  break;
+    case pFloatType:  fprintf(JASM_FILE, "fcmpg\n"); break;
+    case pDoubleType: fprintf(JASM_FILE, "dcmpg\n"); break;
+    }
+
+    fprintf(JASM_FILE, "ifge TRUE%d\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_0\n");
+    fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
+    fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_1\n");
+    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+
+    ++Label_Id;
+}
+
+void gt_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+
+    // compute L - R
+    switch (L->resultTypeInfo.type) {
+    case pIntType:    fprintf(JASM_FILE, "isub\n");  break;
+    case pFloatType:  fprintf(JASM_FILE, "fcmpg\n"); break;
+    case pDoubleType: fprintf(JASM_FILE, "dcmpg\n"); break;
+    }
+
+    fprintf(JASM_FILE, "ifgt TRUE%d\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_0\n");
+    fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
+    fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_1\n");
+    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+
+    ++Label_Id;
+}
+
+void ne_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+
+    // compute L - R
+    switch (L->resultTypeInfo.type) {
+    case pIntType:    fprintf(JASM_FILE, "isub\n");  break;
+    case pFloatType:  fprintf(JASM_FILE, "fcmpg\n"); break;
+    case pDoubleType: fprintf(JASM_FILE, "dcmpg\n"); break;
+    }
+
+    fprintf(JASM_FILE, "ifne TRUE%d\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_0\n");
+    fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
+    fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
+    fprintf(JASM_FILE, "\ticonst_1\n");
+    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+
+    ++Label_Id;
 }
 
 // ARITHMETIC ////////////////////////////////////////////////////////////////////////////

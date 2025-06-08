@@ -1,7 +1,7 @@
 # 額外功能
 
 1. prefix ++, --
-2. 
+2. 有 double（沒f後綴）和 float（有f後綴）
 
 # Usage
 
@@ -36,7 +36,8 @@ local non-const variable 的初始值可以是任意 expression。
 ## Operator
 
 - 所有二元運算子，左右運算元要有***相同型別***
-- ***所有*** 代表 int, float, double, string, bool 及其陣列型別
+- ***所有*** 代表 int, float, double, ~~string~~, bool 及~~其陣列型別~~
+> string 和 陣列型別被簡化掉了
 
 Operator | 接受型別 | 備註
 ---|---|---|
@@ -46,11 +47,11 @@ LOGIC ||
 `&&` | bool |
 `! ` | bool |
 COMPARE ||
-`< ` | int, float, double, string |
-`<=` | int, float, double, string |
+`< ` | int, float, double, ~~string~~ |
+`<=` | int, float, double, ~~string~~ |
 `==` | ***所有*** |
-`>=` | int, float, double, string |
-`> ` | int, float, double, string |
+`>=` | int, float, double, ~~string~~ |
+`> ` | int, float, double, ~~string~~ |
 `!=` | ***所有*** |
 ARITHMETIC ||
 `+`  | int, float, double, ~~string~~ | 對字串而言為字串串接
