@@ -30,6 +30,10 @@ void posToJasm(ExpressionNode_t* R);
 void negToJasm(ExpressionNode_t* R);
 
 // INCR & DECR ////////////////////
+void prefixIncrToJasm(ExpressionNode_t* lvalue);
+void suffixIncrToJasm(ExpressionNode_t* lvalue);
+void prefixDecrToJasm(ExpressionNode_t* lvalue);
+void suffixDecrToJasm(ExpressionNode_t* lvalue);
 
 /**
  * print expr -> JASM

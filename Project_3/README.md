@@ -1,3 +1,8 @@
+# 額外功能
+
+1. prefix ++, --
+2. 
+
 # Usage
 
 ```shell

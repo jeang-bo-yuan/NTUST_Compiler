@@ -97,7 +97,20 @@ void exprToJasm(ExpressionNode_t *expr)
         else if (strcmp(expr->OP, "%") == 0) {
             modToJasm(expr->leftOperand, expr->rightOperand);
         }
+
         // INCR && DECR
+        else if (strcmp(expr->OP, "++") == 0) {
+            if (expr->leftOperand)
+                suffixIncrToJasm(expr->leftOperand); // x ++
+            else
+                prefixIncrToJasm(expr->rightOperand); // ++ x
+        }
+        else if (strcmp(expr->OP, "--") == 0) {
+            if (expr->leftOperand)
+                suffixDecrToJasm(expr->leftOperand); // x --
+            else
+                prefixDecrToJasm(expr->rightOperand); // -- x
+        }
     }
 }
 
@@ -221,6 +234,76 @@ void negToJasm(ExpressionNode_t *R)
         case pIntType:    fprintf(JASM_FILE, "ineg\n"); break;
         case pFloatType:  fprintf(JASM_FILE, "fneg\n"); break;
         case pDoubleType: fprintf(JASM_FILE, "dneg\n"); break;
+    }
+}
+
+// INCR && DECR ///////////////////////////////////////////////////////////
+
+void prefixIncrToJasm(ExpressionNode_t *lvalue)
+{
+    // 先加
+    if (lvalue->localVariableIndex >= 0)
+        fprintf(JASM_FILE, "iinc %d 1\n", lvalue->localVariableIndex);
+    else {
+        fprintf(JASM_FILE, "getstatic int %s\n", lvalue->sval);
+        fprintf(JASM_FILE, "iconst_1\niadd\nputstatic int %s\n", lvalue->sval);
+    }
+
+    // 再放值
+    if (lvalue->localVariableIndex >= 0)
+        fprintf(JASM_FILE, "iload %d\n", lvalue->localVariableIndex);
+    else
+        fprintf(JASM_FILE, "getstatic int %s\n", lvalue->sval);
+}
+
+void suffixIncrToJasm(ExpressionNode_t *lvalue)
+{
+    // 先放值
+    if (lvalue->localVariableIndex >= 0)
+        fprintf(JASM_FILE, "iload %d\n", lvalue->localVariableIndex);
+    else
+        fprintf(JASM_FILE, "getstatic int %s\n", lvalue->sval);
+
+    // 再加
+    if (lvalue->localVariableIndex >= 0)
+        fprintf(JASM_FILE, "iinc %d 1\n", lvalue->localVariableIndex);
+    else {
+        fprintf(JASM_FILE, "getstatic int %s\n", lvalue->sval);
+        fprintf(JASM_FILE, "iconst_1\niadd\nputstatic int %s\n", lvalue->sval);
+    }
+}
+
+void prefixDecrToJasm(ExpressionNode_t *lvalue)
+{
+    // 先減
+    if (lvalue->localVariableIndex >= 0)
+        fprintf(JASM_FILE, "iinc %d -1\n", lvalue->localVariableIndex);
+    else {
+        fprintf(JASM_FILE, "getstatic int %s\n", lvalue->sval);
+        fprintf(JASM_FILE, "iconst_1\nisub\nputstatic int %s\n", lvalue->sval);
+    }
+
+    // 再放值
+    if (lvalue->localVariableIndex >= 0)
+        fprintf(JASM_FILE, "iload %d\n", lvalue->localVariableIndex);
+    else
+        fprintf(JASM_FILE, "getstatic int %s\n", lvalue->sval);
+}
+
+void suffixDecrToJasm(ExpressionNode_t *lvalue)
+{
+    // 先放值
+    if (lvalue->localVariableIndex >= 0)
+        fprintf(JASM_FILE, "iload %d\n", lvalue->localVariableIndex);
+    else
+        fprintf(JASM_FILE, "getstatic int %s\n", lvalue->sval);
+
+    // 再減
+    if (lvalue->localVariableIndex >= 0)
+        fprintf(JASM_FILE, "iinc %d -1\n", lvalue->localVariableIndex);
+    else {
+        fprintf(JASM_FILE, "getstatic int %s\n", lvalue->sval);
+        fprintf(JASM_FILE, "iconst_1\nisub\nputstatic int %s\n", lvalue->sval);
     }
 }
 
