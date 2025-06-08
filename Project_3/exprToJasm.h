@@ -11,10 +11,21 @@ void popExprResult(Type_Info_t type);
  */
 void exprToJasm(ExpressionNode_t* expr);
 
-/**
- * = -> JASM
- */
+// ASSIGN /////////////////////////
 void assignToJasm(const char* identifier, int localVariableIndex, ExpressionNode_t* expr);
+
+// LOGIC //////////////////////////
+// COMPARE ////////////////////////
+// ARITHMETIC /////////////////////
+void addToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void subToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void mulToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void divToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void modToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void posToJasm(ExpressionNode_t* R);
+void negToJasm(ExpressionNode_t* R);
+
+// INCR & DECR ////////////////////
 
 /**
  * print expr -> JASM

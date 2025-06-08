@@ -13,20 +13,6 @@ make
 
 # Type
 
-## Array
-
-Example：
-
-```d
-// 1 維
-int arr[10];
-
-// 2 維
-int arr[10][20];
-```
-
-最高支援 15 維陣列。每一維的大小必需是常數。
-
 ## Const
 
 const variable 必須在定義時給定初始值，且定義後不能再修改。
@@ -62,7 +48,7 @@ COMPARE ||
 `> ` | int, float, double, string |
 `!=` | ***所有*** |
 ARITHMETIC ||
-`+`  | int, float, double, string | 對字串而言為字串串接
+`+`  | int, float, double, ~~string~~ | 對字串而言為字串串接
 `-`  | int, float, double
 `*`  | int, float, double
 `/`  | int, float, double

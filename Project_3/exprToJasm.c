@@ -57,11 +57,39 @@ void exprToJasm(ExpressionNode_t *expr)
     }
     // Operator ///////////////////////////////////////////////////////////////////////////////////
     else if (expr->isOP) {
+        // Assign
         if (strcmp(expr->OP, "=") == 0) {
             assignToJasm(expr->leftOperand->sval, expr->leftOperand->localVariableIndex, expr->rightOperand);
         }
+        // Logic
+        // Compare
+        // Arithmetic
+        else if (strcmp(expr->OP, "+") == 0) {
+            if (expr->leftOperand)
+                addToJasm(expr->leftOperand, expr->rightOperand);
+            else
+                posToJasm(expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, "-") == 0) {
+            if (expr->leftOperand)
+                subToJasm(expr->leftOperand, expr->rightOperand);
+            else
+                negToJasm(expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, "*") == 0) {
+            mulToJasm(expr->leftOperand, expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, "/") == 0) {
+            divToJasm(expr->leftOperand, expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, "%") == 0) {
+            modToJasm(expr->leftOperand, expr->rightOperand);
+        }
+        // INCR && DECR
     }
 }
+
+// ASSIGN /////////////////////////////////////////////////////////////////////////////////////
 
 void assignToJasm(const char *identifier, int localVariableIndex, ExpressionNode_t *expr)
 {
@@ -88,6 +116,77 @@ void assignToJasm(const char *identifier, int localVariableIndex, ExpressionNode
         case pBoolType:   fprintf(JASM_FILE, "putstatic %s %s\n", JASM_TypeStr[pBoolType]  , identifier); fprintf(JASM_FILE, "getstatic %s %s\n", JASM_TypeStr[pBoolType]  , identifier); break;
         case pStringType: perror("Not implemented - putstaticstring"); exit(-1);
         }
+    }
+}
+
+// ARITHMETIC ////////////////////////////////////////////////////////////////////////////
+
+void addToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+    switch (L->resultTypeInfo.type) {
+        case pIntType:    fprintf(JASM_FILE, "iadd\n"); break;
+        case pFloatType:  fprintf(JASM_FILE, "fadd\n"); break;
+        case pDoubleType: fprintf(JASM_FILE, "dadd\n"); break;
+        case pStringType: perror("Not Implemented - String Concatanation"); exit(-1);
+    }
+}
+
+void subToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+    switch (L->resultTypeInfo.type) {
+        case pIntType:    fprintf(JASM_FILE, "isub\n"); break;
+        case pFloatType:  fprintf(JASM_FILE, "fsub\n"); break;
+        case pDoubleType: fprintf(JASM_FILE, "dsub\n"); break;
+    }
+}
+
+void mulToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+    switch (L->resultTypeInfo.type) {
+        case pIntType:    fprintf(JASM_FILE, "imul\n"); break;
+        case pFloatType:  fprintf(JASM_FILE, "fmul\n"); break;
+        case pDoubleType: fprintf(JASM_FILE, "dmul\n"); break;
+    }
+}
+
+void divToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+    switch (L->resultTypeInfo.type) {
+        case pIntType:    fprintf(JASM_FILE, "idiv\n"); break;
+        case pFloatType:  fprintf(JASM_FILE, "fdiv\n"); break;
+        case pDoubleType: fprintf(JASM_FILE, "ddiv\n"); break;
+    }
+}
+
+void modToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+    switch (L->resultTypeInfo.type) {
+        case pIntType:    fprintf(JASM_FILE, "irem\n"); break;
+    }
+}
+
+void posToJasm(ExpressionNode_t *R)
+{
+    exprToJasm(R);
+}
+
+void negToJasm(ExpressionNode_t *R)
+{
+    exprToJasm(R);
+    switch (R->resultTypeInfo.type) {
+        case pIntType:    fprintf(JASM_FILE, "ineg\n"); break;
+        case pFloatType:  fprintf(JASM_FILE, "fneg\n"); break;
+        case pDoubleType: fprintf(JASM_FILE, "dneg\n"); break;
     }
 }
 
