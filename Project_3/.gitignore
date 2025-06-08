@@ -4,4 +4,5 @@ lex.yy.c
 parser
 .vscode/
 *.zip
+*.jasm
 y.output

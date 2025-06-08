@@ -3,11 +3,16 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #include "symbol_table.h"
 #include "expression.h"
 
 extern int linenum;
 struct SymbolTable_t* Symbol_Table = NULL;
+// 輸出的 jasm 檔
+static FILE* JASM_FILE = NULL;
+// 輸出的 class 名稱
+char* CLASS_NAME = NULL;
 
 int yylex();
 void yyerror(char*);
@@ -674,12 +679,58 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue) {
   return true;
 }
 
+/* 依據 sD 程式的檔名，開啟對應的 JASM 檔 */
+void openJasmAndPrintHeader(const char* sD_filename) {
+  /* 把 sD_filename 中 / 以前的字元忽略 */ {
+    char* tmp = strpbrk(sD_filename, "/");
+    while (tmp) {
+      sD_filename = tmp + 1;
+      tmp = strpbrk(sD_filename, "/");
+    }
+  }
+
+  // sD_filename 前 len 個字元為輸出的 class 名稱
+  unsigned len = 0;
+  char* jasm_filename = NULL;
+
+  while (isalnum(sD_filename[len]) || sD_filename[len] == '_')
+    ++len;
+  
+  // class 名稱
+  if (len > 0) {
+    CLASS_NAME = calloc(len + 1 /* \0 */, sizeof(char));
+    strncpy(CLASS_NAME, sD_filename, len);
+  }
+  else {
+    CLASS_NAME = calloc(sizeof("Program") / sizeof(char), sizeof(char));
+    strcpy(CLASS_NAME, "Program");
+    len = sizeof("Program") / sizeof(char) - 1;
+  }
+
+  // jasm 檔名 = class 名稱 + .jasm
+  jasm_filename = calloc(len + 6 /* .jasm\0 */, sizeof(char));
+  strcpy(jasm_filename, CLASS_NAME);
+  strcat(jasm_filename, ".jasm");
+  JASM_FILE = fopen(jasm_filename, "w");
+
+  // print header
+  fprintf(JASM_FILE, "class %s\n{\n", CLASS_NAME);
+
+  free(jasm_filename);
+}
 
 int main (int argc, char *argv[])
 {
     Symbol_Table = create(Symbol_Table);
 
-    /* open the source program file */
+    if (argc > 2 || (argc == 2 && strcmp(argv[1], "-h") == 0)) {
+        puts("Usage");
+        puts("\tparser           -> use stdin");
+        puts("\tparser <file>    -> read from file");
+        exit(0);
+    }
+
+    /* open the source program file & output JASM file */
     if (argc == 2) {
         yyin = fopen(argv[1], "r"); /* open input file */
 
@@ -687,12 +738,11 @@ int main (int argc, char *argv[])
             yyerror("Cannot open file");
             exit(-1);
         }
+
+        openJasmAndPrintHeader(argv[1]);
     }
-    else if (argc != 1) {
-        yyerror("Usage\n");
-        yyerror("\tparser           -> use stdin\n");
-        yyerror("\tparser <file>    -> read from file\n");
-        exit(-1);
+    else {
+        openJasmAndPrintHeader("stdin");
     }
 
     /* perform parsing */
@@ -712,4 +762,8 @@ int main (int argc, char *argv[])
 
         Symbol_Table = freeSymbolTable(Symbol_Table);
     }
+
+    fprintf(JASM_FILE, "}\n");
+    fclose(JASM_FILE);
+    free(CLASS_NAME);
 }
