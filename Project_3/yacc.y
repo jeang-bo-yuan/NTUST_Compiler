@@ -144,15 +144,37 @@ Global_Def_Tail :   // Function
                     }
                     Parameter_Def_List
                     ')' 
-                    {  // 將函數加入 Global Symbol Table
+                    {  // 將函數加入 Global Symbol Table + 生成 JASM
                       SymbolTableNode_t* function = insert(Symbol_Table->parent, Global_Level_ID);
                       function->isFunction = true;
                       function->functionTypeInfo = Function_Info;
+
+                      // JASM Function //////////////////////////////////////////////////////////////////
+                      // 檢查 main()
+                      if (strcmp(Global_Level_ID, "main") == 0) {
+                        if (Function_Info.parameterNum != 0) { yyerror("main() cannot have parameters."); YYERROR; }
+                        if (Function_Info.returnType.type != pVoidType) { yyerror("return type of main() must be void"); YYERROR; }
+                        fprintf(JASM_FILE, "method public static void main(java.lang.String[])\n");
+                      }
+                      else {
+                        fprintf(JASM_FILE, "method public static %s %s (", JASM_TypeStr[Function_Info.returnType.type], Global_Level_ID);
+                        for (unsigned i = 0; i < Function_Info.parameterNum; ++i) {
+                          if (i) fprintf(JASM_FILE, ", ");
+                          fprintf(JASM_FILE, "%s", JASM_TypeStr[Function_Info.parameters[i].type]);
+                        }
+                        fprintf(JASM_FILE, ")\n");
+                      }
+
+                      fprintf(JASM_FILE, "max_stack 15\nmax_locals 15\n{\n");
                     }
                     '{' Statements '}'
                     { // 䆁放 Symbol Table，回到 global scope
                       dump(Symbol_Table);
                       Symbol_Table = freeSymbolTable(Symbol_Table);
+
+                      //////////////////////////////////////////////////////////
+                      if (Function_Info.returnType.type == pVoidType) fprintf(JASM_FILE, "return\n");
+                      fprintf(JASM_FILE, "} /* end of %s */\n\n", Global_Level_ID);
                     }
                   | // Variable Definition
                     {
@@ -676,6 +698,28 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue) {
       Node->expr = defaultValue;
   }
 
+  // 新增 JASM code
+  if (IN_GLOBAL_SCOPE()) {
+    fprintf(JASM_FILE, "/* ");
+    printTypeInfo(JASM_FILE, Type_Info);
+    fprintf(JASM_FILE, " %s */\n",           identifier);
+    fprintf(JASM_FILE, "field static %s %s", JASM_TypeStr[Type_Info.type], identifier);
+
+    if (defaultValue) {
+      switch (Type_Info.type) {
+        case pIntType:    fprintf(JASM_FILE, " = %d",  defaultValue->cIval); break;
+        case pFloatType:  fprintf(JASM_FILE, " = %ef", defaultValue->cFval); break;
+        case pDoubleType: fprintf(JASM_FILE, " = %e",  defaultValue->cDval); break;
+        case pBoolType:   fprintf(JASM_FILE, " = %d",  defaultValue->cBval); break;
+      }
+    }
+
+    fprintf(JASM_FILE, "\n\n");
+  }
+  else {
+
+  }
+
   return true;
 }
 
@@ -763,7 +807,7 @@ int main (int argc, char *argv[])
         Symbol_Table = freeSymbolTable(Symbol_Table);
     }
 
-    fprintf(JASM_FILE, "}\n");
+    fprintf(JASM_FILE, "} /* end of class %s */\n", CLASS_NAME);
     fclose(JASM_FILE);
     free(CLASS_NAME);
 }

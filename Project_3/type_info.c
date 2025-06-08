@@ -10,6 +10,15 @@ const char* const PrimitiveTypeStr[6] = {
     [pVoidType] = "void"
 };
 
+const char* const JASM_TypeStr[6] = {
+    [pIntType] = "int",
+    [pBoolType] = "int",       // 當 int，因為比較方便
+    [pFloatType] = "float",
+    [pDoubleType] = "double",
+    [pStringType] = "java.lang.String",
+    [pVoidType] = "void"
+};
+
 //                                Const  Type         DIMS
 const Type_Info_t BOOL_TYPE   = { false, pBoolType,   0, NULL},
                   INT_TYPE    = { false, pIntType,    0, NULL},

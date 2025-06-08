@@ -5,6 +5,7 @@
 #define MAX_PARAMETER_NUM 15
 
 extern const char* const PrimitiveTypeStr[6];
+extern const char* const JASM_TypeStr[6];
 
 /**
 * 原生型別

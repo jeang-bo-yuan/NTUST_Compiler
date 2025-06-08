@@ -5,4 +5,5 @@ parser
 .vscode/
 *.zip
 *.jasm
+*.class
 y.output
