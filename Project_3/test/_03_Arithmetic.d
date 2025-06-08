@@ -6,7 +6,7 @@ main() {
 
     {
         float a = 1.0f, b = 10.0f;
-        println +(a * b) + -(b / a); // 0
+        println +(a * b) - -(b / a); // 20
     }
 
     {
