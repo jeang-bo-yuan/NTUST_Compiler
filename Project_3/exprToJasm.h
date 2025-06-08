@@ -15,6 +15,10 @@ void exprToJasm(ExpressionNode_t* expr);
 void assignToJasm(const char* identifier, int localVariableIndex, ExpressionNode_t* expr);
 
 // LOGIC //////////////////////////
+void orToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void andToJasm(ExpressionNode_t* L, ExpressionNode_t* R);
+void notToJasm(ExpressionNode_t* R);
+
 // COMPARE ////////////////////////
 // ARITHMETIC /////////////////////
 void addToJasm(ExpressionNode_t* L, ExpressionNode_t* R);

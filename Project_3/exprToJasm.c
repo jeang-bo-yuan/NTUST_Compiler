@@ -61,8 +61,20 @@ void exprToJasm(ExpressionNode_t *expr)
         if (strcmp(expr->OP, "=") == 0) {
             assignToJasm(expr->leftOperand->sval, expr->leftOperand->localVariableIndex, expr->rightOperand);
         }
+        
         // Logic
+        else if (strcmp(expr->OP, "||") == 0) {
+            orToJasm(expr->leftOperand, expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, "&&") == 0) {
+            andToJasm(expr->leftOperand, expr->rightOperand);
+        }
+        else if (strcmp(expr->OP, "!") == 0) {
+            notToJasm(expr->rightOperand);
+        }
+
         // Compare
+        
         // Arithmetic
         else if (strcmp(expr->OP, "+") == 0) {
             if (expr->leftOperand)
@@ -117,6 +129,28 @@ void assignToJasm(const char *identifier, int localVariableIndex, ExpressionNode
         case pStringType: perror("Not implemented - putstaticstring"); exit(-1);
         }
     }
+}
+
+// LOGIC //////////////////////////////////////////////////////////////////////////////////////////////////
+
+void orToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+    fprintf(JASM_FILE, "ior\n");
+}
+
+void andToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
+{
+    exprToJasm(L);
+    exprToJasm(R);
+    fprintf(JASM_FILE, "iand\n");
+}
+
+void notToJasm(ExpressionNode_t *R)
+{
+    exprToJasm(R);
+    fprintf(JASM_FILE, "iconst_1\nixor\n");
 }
 
 // ARITHMETIC ////////////////////////////////////////////////////////////////////////////
