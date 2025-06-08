@@ -39,7 +39,7 @@ typedef struct SymbolTableNode_t {
  * @details trie
  */
 typedef struct SymbolTable_t {
-    unsigned nextLocalVariableIndex; // 下一個可分配的區域變數 index
+    unsigned nextLocalVariableIndex; // 下一個可分配的區域變數 index（Note: 只有 parent->parent == NULL 才可分配 index）
     struct SymbolTable_t* parent;
     struct SymbolTableNode_t* root[ID_FIRST_CHARS];
 } SymbolTable_t;

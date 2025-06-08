@@ -236,6 +236,11 @@ void assignIndex(SymbolTableNode_t *node, SymbolTable_t *table)
         return;
     }
 
+    // 不斷向上到 Function scope
+    while (table->parent->parent != NULL)
+        table = table->parent;
+
+    // 分配 index
     node->localVariableIndex = table->nextLocalVariableIndex;
 
     switch (node->typeInfo.type) {
