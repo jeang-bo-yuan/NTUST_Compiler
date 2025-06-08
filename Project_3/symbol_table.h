@@ -12,7 +12,7 @@ typedef struct SymbolTableNode_t {
     bool isEnd : 1;
     bool isFunction : 1;   // 是否是函數
     bool isParameter : 1;  // 是否是參數
-    bool hasDefaultValue : 1;           // 是否有預設值
+    bool hasDefaultValue : 1;           // 是否有預設值（<- 這好像不需要，只是 Debug 時能印出比較多資訊）
     bool defaultValueIsConstExpr : 1;   // 預設值是 constexpr
     int localVariableIndex;  // JASM 中區域變數的 index，只有當 `不是全域變數 && !isFunction && (!typeInfo.isConst || isParameter)` 時才有 >= 0 的值，否則是 -1
     

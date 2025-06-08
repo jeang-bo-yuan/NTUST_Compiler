@@ -6,11 +6,12 @@
 #include <ctype.h>
 #include "symbol_table.h"
 #include "expression.h"
+#include "exprToJasm.h"
 
 extern int linenum;
 struct SymbolTable_t* Symbol_Table = NULL;
 // 輸出的 jasm 檔
-static FILE* JASM_FILE = NULL;
+FILE* JASM_FILE = NULL;
 // 輸出的 class 名稱
 char* JASM_CLASS_NAME = NULL;
 
@@ -538,6 +539,9 @@ Expression:
                 case pStringType: $$->cSval = N->sval; break;
               }
             }
+            else {
+              $$->localVariableIndex = N->localVariableIndex;
+            }
           }
           ;
 
@@ -663,69 +667,67 @@ bool addVariable(const char* identifier, ExpressionNode_t* defaultValue) {
     return false;
   }
 
-  if (defaultValue) {
-    Node->hasDefaultValue = true;
+  // 如果變數型別和 Expression 的型別不同
+  if (defaultValue && isSameTypeInfo_WithoutConst(Node->typeInfo, defaultValue->resultTypeInfo) == false) {
+    yyerror("Variable and its default value have different type.");
 
-    // 如果變數型別和 Expression 的型別不同
-    if (isSameTypeInfo_WithoutConst(Node->typeInfo, defaultValue->resultTypeInfo) == false) {
-      yyerror("Variable and its default value have different type.");
+    fprintf(stderr, "\tFor variable: %s, ", identifier);
+    printTypeInfo(stderr, Node->typeInfo);
+    fprintf(stderr, " V.S. ");
+    printTypeInfo(stderr, defaultValue->resultTypeInfo);
+    fprintf(stderr, "\n");
 
-      fprintf(stderr, "\tFor variable: %s, ", identifier);
-      printTypeInfo(stderr, Node->typeInfo);
-      fprintf(stderr, " V.S. ");
-      printTypeInfo(stderr, defaultValue->resultTypeInfo);
-      fprintf(stderr, "\n");
-
-      return false;
-    }
-
-    // 記錄起始值
-    if (defaultValue->isConstExpr) {
-      Node->defaultValueIsConstExpr = true;  
-
-      switch (defaultValue->resultTypeInfo.type) {
-        case pIntType:    Node->ival = defaultValue->cIval; break;
-        case pFloatType:  Node->fval = defaultValue->cFval; break;
-        case pDoubleType: Node->dval = defaultValue->cDval; break;
-        case pBoolType:   Node->bval = defaultValue->cBval; break;
-        case pStringType: {
-          Node->sval = calloc(strlen(defaultValue->cSval) + 1, sizeof(char));
-          strcpy(Node->sval, defaultValue->cSval);
-          break;
-        }
-      }
-
-      freeExprTree(defaultValue);
-    }
-    else
-      Node->expr = defaultValue;
+    return false;
   }
 
-  // 新增 JASM code
-  if (!Type_Info.isConst) {
-    // Global Variable
-    if (IN_GLOBAL_SCOPE()) {
-      fprintf(JASM_FILE, "/* ");
-      printTypeInfo(JASM_FILE, Type_Info);
-      fprintf(JASM_FILE, " %s */\n",           identifier);
-      fprintf(JASM_FILE, "field static %s %s", JASM_TypeStr[Type_Info.type], identifier);
+  // 記錄常數 ////////////////////////////////////////////////////////////////////////////////////
+  if (Type_Info.isConst) {
+    Node->hasDefaultValue = true;
+    Node->defaultValueIsConstExpr = true;
 
-      if (defaultValue) {
-        switch (Type_Info.type) {
-          case pIntType:    fprintf(JASM_FILE, " = %d",  defaultValue->cIval); break;
-          case pFloatType:  fprintf(JASM_FILE, " = %ef", defaultValue->cFval); break;
-          case pDoubleType: fprintf(JASM_FILE, " = %e",  defaultValue->cDval); break;
-          case pBoolType:   fprintf(JASM_FILE, " = %d",  defaultValue->cBval); break;
-        }
-      }
-
-      fprintf(JASM_FILE, "\n\n");
-    }
-    else {
-      if (defaultValue) {
-        // TODO
+    switch (defaultValue->resultTypeInfo.type) {
+      case pIntType:    Node->ival = defaultValue->cIval; break;
+      case pFloatType:  Node->fval = defaultValue->cFval; break;
+      case pDoubleType: Node->dval = defaultValue->cDval; break;
+      case pBoolType:   Node->bval = defaultValue->cBval; break;
+      case pStringType: {
+        Node->sval = calloc(strlen(defaultValue->cSval) + 1, sizeof(char));
+        strcpy(Node->sval, defaultValue->cSval);
+        break;
       }
     }
+
+    freeExprTree(defaultValue);
+  }
+  // 非常數 的 全域變數 ///////////////////////////////////////////////////////////////////////
+  else if (IN_GLOBAL_SCOPE()) {
+    fprintf(JASM_FILE, "/* ");
+    printTypeInfo(JASM_FILE, Type_Info);
+    fprintf(JASM_FILE, " %s */\n",           identifier);
+    fprintf(JASM_FILE, "field static %s %s", JASM_TypeStr[Type_Info.type], identifier);
+
+    if (defaultValue) {
+      Node->hasDefaultValue = true;
+      Node->defaultValueIsConstExpr = true;
+
+      switch (Type_Info.type) {
+        //   Type         JASM                                               Store Default Value
+        case pIntType:    fprintf(JASM_FILE, " = %d",  defaultValue->cIval); Node->ival = defaultValue->cIval; break;
+        case pFloatType:  fprintf(JASM_FILE, " = %ef", defaultValue->cFval); Node->fval = defaultValue->cFval; break;
+        case pDoubleType: fprintf(JASM_FILE, " = %e",  defaultValue->cDval); Node->dval = defaultValue->cDval; break;
+        case pBoolType:   fprintf(JASM_FILE, " = %d",  defaultValue->cBval); Node->bval = defaultValue->cBval; break;
+        case pStringType: yyerror("Not implemented. - global default value string"); return false;
+      }
+    }
+
+    fprintf(JASM_FILE, "\n\n");
+    freeExprTree(defaultValue);
+  }
+  // 有預設值的「非常數」區域變數 /////////////////////////////////////////////////////////////////////
+  else if (defaultValue) {
+    Node->hasDefaultValue = true;
+    Node->expr = defaultValue;
+    assignToJasm(identifier, Node->localVariableIndex, Node->expr);
   }
 
   return true;
