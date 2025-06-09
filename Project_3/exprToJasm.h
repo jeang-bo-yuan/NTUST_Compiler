@@ -42,6 +42,9 @@ void suffixIncrToJasm(ExpressionNode_t* lvalue);
 void prefixDecrToJasm(ExpressionNode_t* lvalue);
 void suffixDecrToJasm(ExpressionNode_t* lvalue);
 
+// FUNCTION CALL ///////////////
+void funcCallToJasm(ExpressionNode_t* funcCallExpr);
+
 /**
  * print expr -> JASM
  */
@@ -51,3 +54,8 @@ void printToJasm(ExpressionNode_t* expr);
  * println expr -> JASM
  */
 void printlnToJasm(ExpressionNode_t* expr);
+
+/**
+ * return expr -> JASM
+ */
+void returnToJasm(ExpressionNode_t* expr);

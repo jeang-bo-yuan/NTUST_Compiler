@@ -81,6 +81,8 @@ static unsigned DIMS_Buffer[MAX_ARRAY_DIMENSION];
 // 儲存函數的型別
 static Function_Type_Info_t Function_Info;
 static Type_Info_t PARAM_Buffer[MAX_PARAMETER_NUM];
+// 函式中有幾個return
+static unsigned numOfReturn = 0;
 
 %}
 
@@ -131,6 +133,8 @@ Global_Def_Tail :   // Function
                     '('
                     { // Reset + Return Type + 為函數本體建立 symbol table（會儲存參數、區域變數）
                       memset(&Function_Info, 0, sizeof(Function_Info));
+                      numOfReturn = 0;
+
                       // Return type
                       if (Type_Info.type == pVoidType && (Type_Info.dimension > 0 || Type_Info.isConst)) {
                         yyerror("Invalid Return Type");
@@ -140,6 +144,7 @@ Global_Def_Tail :   // Function
                         YYERROR;
                       }
                       Function_Info.returnType = Type_Info;
+
                       // 為函數本體建立 symbol table（會儲存參數、區域變數）
                       Symbol_Table = create(Symbol_Table);
                     }
@@ -173,6 +178,12 @@ Global_Def_Tail :   // Function
                     { // 䆁放 Symbol Table，回到 global scope
                       dump(Symbol_Table);
                       Symbol_Table = freeSymbolTable(Symbol_Table);
+
+                      // non-void 必須有 return
+                      if (Function_Info.returnType.type != pVoidType && numOfReturn == 0) {
+                        yyerror("Expect return inside non-void function!");
+                        YYERROR;
+                      }
 
                       //////////////////////////////////////////////////////////
                       if (Function_Info.returnType.type == pVoidType) fprintf(JASM_FILE, "return\n");
@@ -274,7 +285,10 @@ One_Simple_Statement:
              | RETURN Expression ';'
              { 
                 if (isSameTypeInfo_WithoutConst(Function_Info.returnType, $2->resultTypeInfo)) {
-                  printf("\t\e[36mreturn \e[m");  dumpExprTree(stdout, $2); puts(""); freeExprTree($2); 
+                  printf("\t\e[36mreturn \e[m");  dumpExprTree(stdout, $2); puts("");
+                  returnToJasm($2);
+                  ++numOfReturn;
+                  freeExprTree($2); 
                 }
                 else {
                   yyerror("Type Error!");
@@ -290,6 +304,8 @@ One_Simple_Statement:
              {
                 if (Function_Info.returnType.type == pVoidType) {
                   printf("\t\e[36mreturn\e[m\n");
+                  fprintf(JASM_FILE, "return\n");
+                  ++numOfReturn;
                 }
                 else {
                   yyerror("Type Error!");

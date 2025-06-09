@@ -130,6 +130,10 @@ void exprToJasm(ExpressionNode_t *expr)
                 prefixDecrToJasm(expr->rightOperand); // -- x
         }
     }
+    // Function Call //////////////////////////////////////////////////
+    else if (expr->isFuncCallOP) {
+        funcCallToJasm(expr);
+    }
 }
 
 // ASSIGN /////////////////////////////////////////////////////////////////////////////////////
@@ -461,6 +465,30 @@ void suffixDecrToJasm(ExpressionNode_t *lvalue)
     }
 }
 
+// FUNCTION CALL ////////////////////////////////////////////////////////////////////////
+
+void funcCallToJasm(ExpressionNode_t *funcCallExpr)
+{
+    // parameters
+    for (ExpressionNode_t* param = funcCallExpr->rightOperand; param; param = param->nextExpression) {
+        exprToJasm(param);
+    }
+
+    // invoke
+    fprintf(JASM_FILE, "invokestatic %s %s(", JASM_TypeStr[funcCallExpr->resultTypeInfo.type], funcCallExpr->sval);
+
+    // parameter type
+    unsigned i = 0;
+    for (ExpressionNode_t* param = funcCallExpr->rightOperand; param; param = param->nextExpression) {
+        if (i++)
+            fprintf(JASM_FILE, ", ");
+
+        fprintf(JASM_FILE, "%s", JASM_TypeStr[param->resultTypeInfo.type]);
+    }
+
+    fprintf(JASM_FILE, ")\n");
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
 
 static void printStream_JASM(const char* func, ExpressionNode_t* expr)
@@ -478,4 +506,16 @@ void printToJasm(ExpressionNode_t *expr)
 void printlnToJasm(ExpressionNode_t *expr)
 {
     printStream_JASM("println", expr);
+}
+
+void returnToJasm(ExpressionNode_t *expr)
+{
+    exprToJasm(expr);
+
+    switch (expr->resultTypeInfo.type) {
+    case pIntType: case pBoolType:   fprintf(JASM_FILE, "ireturn\n"); break;
+    case pFloatType:                 fprintf(JASM_FILE, "freturn\n"); break;
+    case pDoubleType:                fprintf(JASM_FILE, "dreturn\n"); break;
+    case pStringType:   yyerror("Not implemented - return string\n"); break;
+    }
 }
