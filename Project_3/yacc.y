@@ -275,7 +275,7 @@ Non_Empty_Parameter_Def_List_Suffix: ',' Non_Empty_Parameter_List | /* Empty */ 
 
 // Statements /////////////////////////////////////////////////////////////////////////////
 Statements: One_Simple_Statement Statements 
-          | Var_Def Statements
+          | Block_of_Statements Statements
           | /* Empty */ ;
 
 One_Simple_Statement:
@@ -331,7 +331,7 @@ One_Simple_Statement:
                 }
              }
              | ';'
-             | Block_of_Statements
+             | Var_Def
              | Control_Flow
              ;
 
@@ -340,10 +340,10 @@ Block_of_Statements: '{'         { Symbol_Table = create(Symbol_Table); }
                      '}'         { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
                      ;
 
-Control_Flow: IF '(' Condition_Expression ')' One_Simple_Statement
-            | IF '(' Condition_Expression ')' One_Simple_Statement ELSE One_Simple_Statement
-            | WHILE '(' Condition_Expression ')' One_Simple_Statement
-            | FOR '(' For_Initial_Expression ';' For_Condition_Expression ';' For_Update_Expression ')' One_Simple_Statement
+Control_Flow: IF '(' Condition_Expression ')' Control_Flow_Body
+            | IF '(' Condition_Expression ')' Control_Flow_Body ELSE Control_Flow_Body
+            | WHILE '(' Condition_Expression ')' Control_Flow_Body
+            | FOR '(' For_Initial_Expression ';' For_Condition_Expression ';' For_Update_Expression ')' Control_Flow_Body
             | FOREACH '(' ID ':' Integer_Expression RANGE Integer_Expression ')'
               {
                 SymbolTableNode_t* N = lookupRecursive(Symbol_Table, $3);
@@ -365,8 +365,11 @@ Control_Flow: IF '(' Condition_Expression ')' One_Simple_Statement
                   YYERROR;
                 }
               }
-              One_Simple_Statement
+              Control_Flow_Body
             ;
+
+Control_Flow_Body: { Symbol_Table = create(Symbol_Table); } One_Simple_Statement { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
+                 | { Symbol_Table = create(Symbol_Table); } '{' Statements '}'   { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
 
 For_Initial_Expression:    Expression { printf("\t\e[36mInitial Expression =  \e[m"); dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
                          | /* Empty */;
