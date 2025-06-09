@@ -360,7 +360,19 @@ Control_Flow: Control_Flow_ID IF '(' Condition_Expression ')' If_False_Goto_Else
               {
                 fprintf(JASM_FILE, "END_IFELSE%d: nop\n\n", $1); // END_IFELSE: 結束
               }
-            | Control_Flow_ID WHILE '(' Condition_Expression ')' Control_Flow_Body
+            | Control_Flow_ID WHILE '(' 
+              {
+                fprintf(JASM_FILE, "WHILE%d: nop\n", $1); // WHILE:
+              }
+              Condition_Expression
+              {
+                fprintf(JASM_FILE, "ifeq END_WHILE%d\n", $1); // 如為 false，跳到 END_WHILE
+              }
+              ')' Control_Flow_Body
+              {
+                fprintf(JASM_FILE, "goto WHILE%d\n", $1);        // BODY 執行完，跳回 condition
+                fprintf(JASM_FILE, "END_WHILE%d: nop\n\n", $1);  // END_WHILE: 結束
+              }
             | Control_Flow_ID FOR '(' For_Initial_Expression ';' For_Condition_Expression ';' For_Update_Expression ')' Control_Flow_Body
             | Control_Flow_ID FOREACH '(' ID ':' Integer_Expression RANGE Integer_Expression ')'
               {
