@@ -4,7 +4,7 @@
 #include <string.h>
 
 extern FILE* JASM_FILE;
-extern char* JASM_CLASS_NAME;
+void yyerror(char*);
 
 void popExprResult(Type_Info_t type)
 {
@@ -41,7 +41,7 @@ void exprToJasm(ExpressionNode_t *expr)
             case pFloatType:  fprintf(JASM_FILE, "fload %d\n", expr->localVariableIndex); break;
             case pDoubleType: fprintf(JASM_FILE, "dload %d\n", expr->localVariableIndex); break;
             case pBoolType:   fprintf(JASM_FILE, "iload %d\n", expr->localVariableIndex); break;
-            case pStringType: perror("Not implemented - load string variable"); exit(-1);
+            case pStringType: yyerror("Not implemented - load string variable"); exit(-1);
             }
         }
         // global
@@ -51,7 +51,7 @@ void exprToJasm(ExpressionNode_t *expr)
             case pFloatType:  fprintf(JASM_FILE, "getstatic %s %s\n", JASM_TypeStr[pFloatType] , expr->sval); break;
             case pDoubleType: fprintf(JASM_FILE, "getstatic %s %s\n", JASM_TypeStr[pDoubleType], expr->sval); break;
             case pBoolType:   fprintf(JASM_FILE, "getstatic %s %s\n", JASM_TypeStr[pBoolType]  , expr->sval); break;
-            case pStringType: perror("Not implemented - getstatic string"); exit(-1);
+            case pStringType: yyerror("Not implemented - getstatic string"); exit(-1);
             }
         }
     }
@@ -146,7 +146,7 @@ void assignToJasm(const char *identifier, int localVariableIndex, ExpressionNode
         case pFloatType:  fprintf(JASM_FILE, "fstore %d\n", localVariableIndex); fprintf(JASM_FILE, "fload %d\n", localVariableIndex); break;
         case pDoubleType: fprintf(JASM_FILE, "dstore %d\n", localVariableIndex); fprintf(JASM_FILE, "dload %d\n", localVariableIndex); break;
         case pBoolType:   fprintf(JASM_FILE, "istore %d\n", localVariableIndex); fprintf(JASM_FILE, "iload %d\n", localVariableIndex); break;
-        case pStringType: perror("Not implemented - store string"); exit(-1);
+        case pStringType: yyerror("Not implemented - store string"); exit(-1);
         }
     }
     // global
@@ -157,7 +157,7 @@ void assignToJasm(const char *identifier, int localVariableIndex, ExpressionNode
         case pFloatType:  fprintf(JASM_FILE, "putstatic %s %s\n", JASM_TypeStr[pFloatType] , identifier); fprintf(JASM_FILE, "getstatic %s %s\n", JASM_TypeStr[pFloatType] , identifier); break;
         case pDoubleType: fprintf(JASM_FILE, "putstatic %s %s\n", JASM_TypeStr[pDoubleType], identifier); fprintf(JASM_FILE, "getstatic %s %s\n", JASM_TypeStr[pDoubleType], identifier); break;
         case pBoolType:   fprintf(JASM_FILE, "putstatic %s %s\n", JASM_TypeStr[pBoolType]  , identifier); fprintf(JASM_FILE, "getstatic %s %s\n", JASM_TypeStr[pBoolType]  , identifier); break;
-        case pStringType: perror("Not implemented - putstaticstring"); exit(-1);
+        case pStringType: yyerror("Not implemented - putstaticstring"); exit(-1);
         }
     }
 }
@@ -330,7 +330,7 @@ void addToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
         case pIntType:    fprintf(JASM_FILE, "iadd\n"); break;
         case pFloatType:  fprintf(JASM_FILE, "fadd\n"); break;
         case pDoubleType: fprintf(JASM_FILE, "dadd\n"); break;
-        case pStringType: perror("Not Implemented - String Concatanation"); exit(-1);
+        case pStringType: yyerror("Not Implemented - String Concatanation"); exit(-1);
     }
 }
 
