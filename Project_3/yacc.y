@@ -14,6 +14,8 @@ struct SymbolTable_t* Symbol_Table = NULL;
 FILE* JASM_FILE = NULL;
 // 輸出的 class 名稱
 char* JASM_CLASS_NAME = NULL;
+// 下一個 Control Flow 的編號
+static int NEXT_CONTROL_FLOW_ID = 0;
 
 int yylex();
 void yyerror(char*);
@@ -108,6 +110,8 @@ static unsigned numOfReturn = 0;
 %type <expr> Default_Value Expression
 %type <expr> ArrayIndexOP ArrayIndexOP_Suffix
 %type <expr> FuncCallOP FuncCallOP_Params FuncCallOP_Params_Suffix
+
+%type <ival> Control_Flow_ID
 
 // 優先級低
 %right '='
@@ -340,19 +344,26 @@ Block_of_Statements: '{'         { Symbol_Table = create(Symbol_Table); }
                      '}'         { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
                      ;
 
-Control_Flow: IF '(' Condition_Expression ')' Control_Flow_Body
-            | IF '(' Condition_Expression ')' Control_Flow_Body ELSE Control_Flow_Body
-            | WHILE '(' Condition_Expression ')' Control_Flow_Body
-            | FOR '(' For_Initial_Expression ';' For_Condition_Expression ';' For_Update_Expression ')' Control_Flow_Body
-            | FOREACH '(' ID ':' Integer_Expression RANGE Integer_Expression ')'
+Control_Flow: Control_Flow_ID IF '(' Condition_Expression ')' 
               {
-                SymbolTableNode_t* N = lookupRecursive(Symbol_Table, $3);
+                fprintf(JASM_FILE, "ifeq END_IF%d\n", $1); // 若為 false，跳到 END_IF
+              }
+              Control_Flow_Body
+              {
+                fprintf(JASM_FILE, "END_IF%d:\n\n", $1);
+              }
+            | Control_Flow_ID IF '(' Condition_Expression ')' Control_Flow_Body ELSE Control_Flow_Body
+            | Control_Flow_ID WHILE '(' Condition_Expression ')' Control_Flow_Body
+            | Control_Flow_ID FOR '(' For_Initial_Expression ';' For_Condition_Expression ';' For_Update_Expression ')' Control_Flow_Body
+            | Control_Flow_ID FOREACH '(' ID ':' Integer_Expression RANGE Integer_Expression ')'
+              {
+                SymbolTableNode_t* N = lookupRecursive(Symbol_Table, $4);
 
-                CHECK_NODE_NOT_NULL(N, $3);
+                CHECK_NODE_NOT_NULL(N, $4);
 
                 if (!N->isFunction && isSameTypeInfo(N->typeInfo, INT_TYPE)) {
-                  printf("\t\e[36mForeach \e[m%s\n", $3);
-                  free($3);
+                  printf("\t\e[36mForeach \e[m%s\n", $4);
+                  free($4);
                 }
                 else {
                   yyerror("Type Error!");
@@ -361,12 +372,14 @@ Control_Flow: IF '(' Condition_Expression ')' Control_Flow_Body
                     printFunctionTypeInfo(stderr, N->functionTypeInfo);
                   else
                     printTypeInfo(stderr, N->typeInfo);
-                  fprintf(stderr, ", ID = %s)\n", $3);
+                  fprintf(stderr, ", ID = %s)\n", $4);
                   YYERROR;
                 }
               }
               Control_Flow_Body
             ;
+
+Control_Flow_ID: { $$ = NEXT_CONTROL_FLOW_ID++; }
 
 Control_Flow_Body: { Symbol_Table = create(Symbol_Table); } One_Simple_Statement { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
                  | { Symbol_Table = create(Symbol_Table); } '{' Statements '}'   { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
@@ -381,7 +394,9 @@ For_Update_Expression:     Expression  { printf("\t\e[36mUpdate Expression =  \e
 Condition_Expression: Expression 
                       {
                         if (isSameTypeInfo_WithoutConst($1->resultTypeInfo, BOOL_TYPE)) {
-                          printf("\t\e[36mCondition = \e[m"); dumpExprTree(stdout, $1); puts(""); freeExprTree($1);
+                          printf("\t\e[36mCondition = \e[m"); dumpExprTree(stdout, $1); puts("");
+                          exprToJasm($1);
+                          freeExprTree($1);
                         }
                         else {
                           yyerror("Type error!");
