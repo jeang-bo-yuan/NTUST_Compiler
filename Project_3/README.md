@@ -3,6 +3,7 @@
 1. prefix ++, --
 2. 有 double（沒f後綴）和 float（有f後綴）
 3. break 和 continue
+4. foreach
 
 # Usage
 
@@ -96,11 +97,14 @@ else
 while (bool_expression)
     ...
 
-# Note: update_expression 在迴圈執行一輪後執行。即使有 continue 也會執行
+// Note: update_expression 在迴圈執行一輪後執行。即使有 continue 也會執行
 for (init_expression ; bool_expression ; update_expression)
     ...
 
-foreach (identifier : int_expression .. int_expression)
+// Note: 先評估 I1 的值再評估 I2（只評估一次）
+//       然後讓 i = 「I1 的結果」後，逐漸使 i 加／減1直到 i 變 「I2的結果」
+//       foreach 是閉區間，也就是 i 是 I1 和 I2 的值都會進入迴圈
+foreach (i : I1 .. I2)
     ...
 ```
 

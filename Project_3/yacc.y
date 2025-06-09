@@ -111,7 +111,7 @@ static unsigned numOfReturn = 0;
 %token <dval> DOUBLE_LITERAL
 %token <sval> STRING_LITERAL ID
 
-%type <expr> Default_Value Expression
+%type <expr> Default_Value Expression Integer_Expression
 %type <expr> ArrayIndexOP ArrayIndexOP_Suffix
 %type <expr> FuncCallOP FuncCallOP_Params FuncCallOP_Params_Suffix
 
@@ -433,7 +433,46 @@ Control_Flow: /************************************************************
                 CHECK_NODE_NOT_NULL(N, $4);
 
                 if (!N->isFunction && isSameTypeInfo(N->typeInfo, INT_TYPE)) {
+                  const bool isIdGlobal = N->localVariableIndex < 0;  // $4 是否為全域變數
+                  Loop_List = createLoopList($1, Loop_List);
                   printf("\t\e[36mForeach \e[m%s\n", $4);
+
+                  /* JASM */ {
+                    // I1, I2
+                    exprToJasm($6);
+                    exprToJasm($8);
+                    fprintf(JASM_FILE, "swap\n");
+                    // 將 I1 存進去
+                    if (isIdGlobal) fprintf(JASM_FILE, "\tputstatic int %s\n", $4); else fprintf(JASM_FILE, "\tistore %d\n", N->localVariableIndex);                    
+                    // 第一次執行：直接跳到 FOREACH_BODY
+                    fprintf(JASM_FILE, "goto FOREACH_BODY%d\n", $1);
+
+                    fprintf(JASM_FILE, "LOOP_CONTINUE%d:\n", $1);
+                    // 檢查是否達到終點
+                    fprintf(JASM_FILE, "\tdup\n");
+                    if (isIdGlobal) fprintf(JASM_FILE, "\tgetstatic int %s\n", $4); else fprintf(JASM_FILE, "\tiload %d\n", N->localVariableIndex);
+                    fprintf(JASM_FILE, "\tif_icmpeq LOOP_BREAK%d\n", $1);
+
+                    // 檢查是要加1還是減1
+                    fprintf(JASM_FILE, "\tdup\n");
+                    if (isIdGlobal) fprintf(JASM_FILE, "\tgetstatic int %s\n", $4); else fprintf(JASM_FILE, "\tiload %d\n", N->localVariableIndex);
+                    fprintf(JASM_FILE, "\tif_icmplt FOREACH_GODOWN%d\n", $1);
+                    fprintf(JASM_FILE, "\tldc 1\n"); // 加1
+                    fprintf(JASM_FILE, "\tgoto FOREACH_MOVE%d\n", $1);
+                    fprintf(JASM_FILE, "FOREACH_GODOWN%d:\n", $1);
+                    fprintf(JASM_FILE, "\tldc -1\n"); // 減1
+                    fprintf(JASM_FILE, "FOREACH_MOVE%d:\n", $1);
+                    if (isIdGlobal) fprintf(JASM_FILE, "\tgetstatic int %s\n", $4); else fprintf(JASM_FILE, "\tiload %d\n", N->localVariableIndex);
+                    fprintf(JASM_FILE, "\tiadd\n");
+                    // 把加1或減1的值存回去
+                    if (isIdGlobal) fprintf(JASM_FILE, "\tputstatic int %s\n", $4); else fprintf(JASM_FILE, "\tistore %d\n", N->localVariableIndex);
+
+                    // 接下來是 body
+                    fprintf(JASM_FILE, "FOREACH_BODY%d: nop\n", $1); // FOREACH_BODY
+                  }
+
+                  freeExprTree($6);
+                  freeExprTree($8);
                   free($4);
                 }
                 else {
@@ -448,6 +487,11 @@ Control_Flow: /************************************************************
                 }
               }
               Control_Flow_Body
+              {
+                fprintf(JASM_FILE, "\tgoto LOOP_CONTINUE%d\n", $1);
+                fprintf(JASM_FILE, "LOOP_BREAK%d: pop\n\n", $1);    // LOOP_BREAK: 結束並pop掉I2的結果
+                Loop_List = freeLoopList(Loop_List);
+              }
             ;
 
 Control_Flow_ID: { $$ = NEXT_CONTROL_FLOW_ID++; }
@@ -487,7 +531,8 @@ Condition_Expression: Expression
 Integer_Expression: Expression 
                     {
                       if (isSameTypeInfo_WithoutConst($1->resultTypeInfo, INT_TYPE)) {
-                        printf("\t\e[36mInteger Expression = \e[m"); dumpExprTree(stdout, $1); puts(""); freeExprTree($1);
+                        printf("\t\e[36mInteger Expression = \e[m"); dumpExprTree(stdout, $1); puts("");
+                        $$ = $1;
                       }
                       else {
                         yyerror("Type error!");
