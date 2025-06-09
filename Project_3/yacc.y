@@ -7,6 +7,7 @@
 #include "symbol_table.h"
 #include "expression.h"
 #include "exprToJasm.h"
+#include "util.h"
 
 extern int linenum;
 struct SymbolTable_t* Symbol_Table = NULL;
@@ -14,8 +15,11 @@ struct SymbolTable_t* Symbol_Table = NULL;
 FILE* JASM_FILE = NULL;
 // 輸出的 class 名稱
 char* JASM_CLASS_NAME = NULL;
-// 下一個 Control Flow 的編號
+
+// 當有新的 Control Flow，給他這個編號
 static int NEXT_CONTROL_FLOW_ID = 0;
+// 將所有遇到的 loop 由內至外串成 List，以利 break 和 continue 的判斷
+static LoopList* Loop_List = NULL;
 
 int yylex();
 void yyerror(char*);
@@ -335,6 +339,16 @@ One_Simple_Statement:
                 }
              } */
              | ';' { fprintf(JASM_FILE, "nop\n"); }
+             | BREAK ';' 
+             { 
+                if (Loop_List == NULL) { yyerror("break outside loop"); YYERROR; }  
+                fprintf(JASM_FILE, "goto LOOP_BREAK%d\n", Loop_List->loopID); 
+             }
+             | CONTINUE ';'
+             { 
+                if (Loop_List == NULL) { yyerror("continue outside loop"); YYERROR; }  
+                fprintf(JASM_FILE, "goto LOOP_CONTINUE%d\n", Loop_List->loopID); 
+             }
              | Var_Def
              | Control_Flow
              ;
@@ -371,29 +385,32 @@ Control_Flow: /************************************************************
             *********************************************************/
             | Control_Flow_ID WHILE '(' 
               {
-                fprintf(JASM_FILE, "WHILE%d: nop\n", $1); // WHILE:
+                Loop_List = createLoopList($1, Loop_List);
+                fprintf(JASM_FILE, "LOOP_CONTINUE%d: nop\n", $1); // LOOP_CONTINUE:
               }
               Condition_Expression
               {
-                fprintf(JASM_FILE, "ifeq END_WHILE%d\n", $1); // 如為 false，跳到 END_WHILE
+                fprintf(JASM_FILE, "ifeq LOOP_BREAK%d\n", $1); // 如為 false，跳到 LOOP_BREAK
               }
               ')' Control_Flow_Body
               {
-                fprintf(JASM_FILE, "goto WHILE%d\n", $1);        // BODY 執行完，跳回 condition
-                fprintf(JASM_FILE, "END_WHILE%d: nop\n\n", $1);  // END_WHILE: 結束
+                fprintf(JASM_FILE, "goto LOOP_CONTINUE%d\n", $1);        // BODY 執行完，跳回 condition
+                fprintf(JASM_FILE, "LOOP_BREAK%d: nop\n\n", $1);  // LOOP_BREAK: 結束
+                Loop_List = freeLoopList(Loop_List);
               }
             /*******************************************************
             * For
             ********************************************************/
             | Control_Flow_ID FOR '(' For_Initial_Expression ';' 
               {
+                Loop_List = createLoopList($1, Loop_List);
                 fprintf(JASM_FILE, "FOR%d: nop\n", $1); // FOR:
               }
               For_Condition_Expression ';' 
               {
-                fprintf(JASM_FILE, "ifeq END_FOR%d\n", $1);  // 若為 false，結束
+                fprintf(JASM_FILE, "ifeq LOOP_BREAK%d\n", $1);  // 若為 false，結束
                 fprintf(JASM_FILE, "goto FOR_BODY%d\n", $1); // 執行 BODY
-                fprintf(JASM_FILE, "FOR_POST%d: nop\n", $1); // FOR_POST:
+                fprintf(JASM_FILE, "LOOP_CONTINUE%d: nop\n", $1); // LOOP_CONTINUE: 當遇到 continue，從 update expression 開始
               }
               For_Update_Expression ')' 
               {
@@ -402,8 +419,9 @@ Control_Flow: /************************************************************
               }
               Control_Flow_Body
               {
-                fprintf(JASM_FILE, "goto FOR_POST%d\n", $1);  // 執行完了，執行 update
-                fprintf(JASM_FILE, "END_FOR%d: nop\n\n", $1); // END_FOR
+                fprintf(JASM_FILE, "goto LOOP_CONTINUE%d\n", $1);  // 執行完了，執行 update
+                fprintf(JASM_FILE, "LOOP_BREAK%d: nop\n\n", $1); // LOOP_BREAK
+                Loop_List = freeLoopList(Loop_List);
               }
             /*******************************************************
             * Foreach
@@ -891,8 +909,10 @@ int main (int argc, char *argv[])
     }
 
     /* perform parsing */
-    if (yyparse() == 1) /* parsing */
+    if (yyparse() == 1) /* parsing */ {
         fprintf(stderr, "\e[31mError at line No. %i\e[m\n", linenum); /* syntax error */
+        return -1;
+    }
     else {
         dump(Symbol_Table);
         

@@ -1,0 +1,7 @@
+#! /bin/bash
+# 快速 編譯 + 組譯 + 執行
+
+export FILE=$1
+export FILE=`basename $FILE | grep -E '^[[:alnum:]_]+' -o`
+
+./parser $1 && javaa ${FILE}.jasm && java ${FILE}

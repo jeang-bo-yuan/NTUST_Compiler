@@ -2,14 +2,15 @@ parser: lex.yy.c y.tab.c \
         symbol_table.h symbol_table.c\
 		type_info.h type_info.c \
 		expression.h expression.c \
-		exprToJasm.h exprToJasm.c
-	gcc -g -o parser lex.yy.c y.tab.c symbol_table.c type_info.c expression.c exprToJasm.c
+		exprToJasm.h exprToJasm.c \
+		util.h util.c
+	gcc -g -o parser lex.yy.c y.tab.c symbol_table.c type_info.c expression.c exprToJasm.c util.c
 
 lex.yy.c: lex.l
 	lex lex.l
 
 y.tab.c: yacc.y symbol_table.c \
-         symbol_table.h type_info.h expression.h
+         symbol_table.h type_info.h expression.h exprToJasm.h util.h
 	yacc -d -v yacc.y
 	# 在 y.tab.h 前 include expression.h
 	echo '#include "expression.h"' | cat - y.tab.h > temp && mv temp y.tab.h

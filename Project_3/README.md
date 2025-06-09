@@ -2,6 +2,7 @@
 
 1. prefix ++, --
 2. 有 double（沒f後綴）和 float（有f後綴）
+3. break 和 continue
 
 # Usage
 
@@ -95,9 +96,12 @@ else
 while (bool_expression)
     ...
 
-for (expression ; bool_expression ; expression)
+# Note: update_expression 在迴圈執行一輪後執行。即使有 continue 也會執行
+for (init_expression ; bool_expression ; update_expression)
     ...
 
 foreach (identifier : int_expression .. int_expression)
     ...
 ```
+
+在 while, for, foreach 內可以用 break 和 continue
