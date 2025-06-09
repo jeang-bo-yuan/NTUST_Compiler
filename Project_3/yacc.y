@@ -334,7 +334,7 @@ One_Simple_Statement:
                   YYERROR;
                 }
              }
-             | ';'
+             | ';' { fprintf(JASM_FILE, "nop\n"); }
              | Var_Def
              | Control_Flow
              ;
@@ -344,15 +344,22 @@ Block_of_Statements: '{'         { Symbol_Table = create(Symbol_Table); }
                      '}'         { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
                      ;
 
-Control_Flow: Control_Flow_ID IF '(' Condition_Expression ')' 
+Control_Flow: Control_Flow_ID IF '(' Condition_Expression ')' If_False_Goto_Else
+              Control_Flow_Body 
               {
-                fprintf(JASM_FILE, "ifeq END_IF%d\n", $1); // 若為 false，跳到 END_IF
+                fprintf(JASM_FILE, "ELSE%d: nop\n/* End Of If */\n\n", $1); // ELSE: 結束
+              }
+            | Control_Flow_ID IF '(' Condition_Expression ')' If_False_Goto_Else
+              Control_Flow_Body 
+              ELSE 
+              {
+                fprintf(JASM_FILE, "goto END_IFELSE%d\n", $1); // 上面執行完了，跳到 END_IFELSE
+                fprintf(JASM_FILE, "ELSE%d: nop\n", $1); // ELSE:
               }
               Control_Flow_Body
               {
-                fprintf(JASM_FILE, "END_IF%d:\n\n", $1);
+                fprintf(JASM_FILE, "END_IFELSE%d: nop\n\n", $1); // END_IFELSE: 結束
               }
-            | Control_Flow_ID IF '(' Condition_Expression ')' Control_Flow_Body ELSE Control_Flow_Body
             | Control_Flow_ID WHILE '(' Condition_Expression ')' Control_Flow_Body
             | Control_Flow_ID FOR '(' For_Initial_Expression ';' For_Condition_Expression ';' For_Update_Expression ')' Control_Flow_Body
             | Control_Flow_ID FOREACH '(' ID ':' Integer_Expression RANGE Integer_Expression ')'
@@ -383,6 +390,9 @@ Control_Flow_ID: { $$ = NEXT_CONTROL_FLOW_ID++; }
 
 Control_Flow_Body: { Symbol_Table = create(Symbol_Table); } One_Simple_Statement { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
                  | { Symbol_Table = create(Symbol_Table); } '{' Statements '}'   { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
+
+// Note: 這裡是一個 dirty trick，因為從 IF 到 Control_Flow_Body 之間不會有其他 Control_Flow，所以 `NEXT_CONTROL_FLOW_ID - 1` 是當前的 ID
+If_False_Goto_Else: { fprintf(JASM_FILE, "ifeq ELSE%d\n", NEXT_CONTROL_FLOW_ID - 1); }
 
 For_Initial_Expression:    Expression { printf("\t\e[36mInitial Expression =  \e[m"); dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
                          | /* Empty */;

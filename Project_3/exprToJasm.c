@@ -209,7 +209,7 @@ void lt_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
     fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
     fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
     fprintf(JASM_FILE, "\ticonst_1\n");
-    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+    fprintf(JASM_FILE, "END_COMP%d: nop\n", Label_Id);
 
     ++Label_Id;
 }
@@ -231,7 +231,7 @@ void le_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
     fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
     fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
     fprintf(JASM_FILE, "\ticonst_1\n");
-    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+    fprintf(JASM_FILE, "END_COMP%d: nop\n", Label_Id);
 
     ++Label_Id;
 }
@@ -253,7 +253,7 @@ void eq_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
     fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
     fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
     fprintf(JASM_FILE, "\ticonst_1\n");
-    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+    fprintf(JASM_FILE, "END_COMP%d: nop\n", Label_Id);
 
     ++Label_Id;
 }
@@ -275,7 +275,7 @@ void ge_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
     fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
     fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
     fprintf(JASM_FILE, "\ticonst_1\n");
-    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+    fprintf(JASM_FILE, "END_COMP%d: nop\n", Label_Id);
 
     ++Label_Id;
 }
@@ -297,7 +297,7 @@ void gt_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
     fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
     fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
     fprintf(JASM_FILE, "\ticonst_1\n");
-    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+    fprintf(JASM_FILE, "END_COMP%d: nop\n", Label_Id);
 
     ++Label_Id;
 }
@@ -319,7 +319,7 @@ void ne_ToJasm(ExpressionNode_t *L, ExpressionNode_t *R)
     fprintf(JASM_FILE, "\tgoto END_COMP%d\n", Label_Id);
     fprintf(JASM_FILE, "TRUE%d:\n", Label_Id);
     fprintf(JASM_FILE, "\ticonst_1\n");
-    fprintf(JASM_FILE, "END_COMP%d:\n", Label_Id);
+    fprintf(JASM_FILE, "END_COMP%d: nop\n", Label_Id);
 
     ++Label_Id;
 }
