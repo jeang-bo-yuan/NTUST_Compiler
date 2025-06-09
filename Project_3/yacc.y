@@ -385,7 +385,29 @@ Control_Flow: /************************************************************
             /*******************************************************
             * For
             ********************************************************/
-            | Control_Flow_ID FOR '(' For_Initial_Expression ';' For_Condition_Expression ';' For_Update_Expression ')' Control_Flow_Body
+            | Control_Flow_ID FOR '(' For_Initial_Expression ';' 
+              {
+                fprintf(JASM_FILE, "FOR%d: nop\n", $1); // FOR:
+              }
+              For_Condition_Expression ';' 
+              {
+                fprintf(JASM_FILE, "ifeq END_FOR%d\n", $1);  // 若為 false，結束
+                fprintf(JASM_FILE, "goto FOR_BODY%d\n", $1); // 執行 BODY
+                fprintf(JASM_FILE, "FOR_POST%d: nop\n", $1); // FOR_POST:
+              }
+              For_Update_Expression ')' 
+              {
+                fprintf(JASM_FILE, "goto FOR%d\n", $1);      // Update執行完，跑回前面的condition
+                fprintf(JASM_FILE, "FOR_BODY%d: nop\n", $1); // FOR_BODY:
+              }
+              Control_Flow_Body
+              {
+                fprintf(JASM_FILE, "goto FOR_POST%d\n", $1);  // 執行完了，執行 update
+                fprintf(JASM_FILE, "END_FOR%d: nop\n\n", $1); // END_FOR
+              }
+            /*******************************************************
+            * Foreach
+            ********************************************************/
             | Control_Flow_ID FOREACH '(' ID ':' Integer_Expression RANGE Integer_Expression ')'
               {
                 SymbolTableNode_t* N = lookupRecursive(Symbol_Table, $4);
@@ -418,11 +440,11 @@ Control_Flow_Body: { Symbol_Table = create(Symbol_Table); } One_Simple_Statement
 // Note: 這裡是一個 dirty trick，因為從 IF 到 Control_Flow_Body 之間不會有其他 Control_Flow，所以 `NEXT_CONTROL_FLOW_ID - 1` 是當前的 ID
 If_False_Goto_Else: { fprintf(JASM_FILE, "ifeq ELSE%d\n", NEXT_CONTROL_FLOW_ID - 1); }
 
-For_Initial_Expression:    Expression { printf("\t\e[36mInitial Expression =  \e[m"); dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
+For_Initial_Expression:    Expression { printf("\t\e[36mInitial Expression =  \e[m"); dumpExprTree(stdout, $1); puts(""); exprToJasm($1); popExprResult($1->resultTypeInfo); freeExprTree($1); }
                          | /* Empty */;
 For_Condition_Expression : Condition_Expression 
-                         | /* Empty */ { puts("\t\e[36mCondition =  true\e[m"); };
-For_Update_Expression:     Expression  { printf("\t\e[36mUpdate Expression =  \e[m");  dumpExprTree(stdout, $1); puts(""); freeExprTree($1); }
+                         | /* Empty */ { puts("\t\e[36mCondition =  true\e[m"); fprintf(JASM_FILE, "iconst_1\n"); };
+For_Update_Expression:     Expression  { printf("\t\e[36mUpdate Expression =  \e[m");  dumpExprTree(stdout, $1); puts(""); exprToJasm($1); popExprResult($1->resultTypeInfo); freeExprTree($1); }
                          | /* Empty */;
 
 Condition_Expression: Expression 
