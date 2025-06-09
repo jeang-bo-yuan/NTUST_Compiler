@@ -319,7 +319,7 @@ One_Simple_Statement:
                   YYERROR;
                 }
              }
-             | READ Expression ';' 
+             /* | READ Expression ';' 
              { 
                 if (isExprLvalue($2)) {
                   printf("\t\e[36mread \e[m");  dumpExprTree(stdout, $2); puts(""); freeExprTree($2);
@@ -333,7 +333,7 @@ One_Simple_Statement:
                   fprintf(stderr, "\n");
                   YYERROR;
                 }
-             }
+             } */
              | ';' { fprintf(JASM_FILE, "nop\n"); }
              | Var_Def
              | Control_Flow

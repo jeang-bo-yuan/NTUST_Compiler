@@ -75,7 +75,6 @@ expression;
 print expression;
 println expression;
 
-read lvalue;
 
 return;
 return expression;
