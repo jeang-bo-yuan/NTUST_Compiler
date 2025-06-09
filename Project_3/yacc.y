@@ -344,11 +344,17 @@ Block_of_Statements: '{'         { Symbol_Table = create(Symbol_Table); }
                      '}'         { dump(Symbol_Table); Symbol_Table = freeSymbolTable(Symbol_Table); }
                      ;
 
-Control_Flow: Control_Flow_ID IF '(' Condition_Expression ')' If_False_Goto_Else
+Control_Flow: /************************************************************
+              * If
+              *************************************************************/
+              Control_Flow_ID IF '(' Condition_Expression ')' If_False_Goto_Else
               Control_Flow_Body 
               {
                 fprintf(JASM_FILE, "ELSE%d: nop\n/* End Of If */\n\n", $1); // ELSE: 結束
               }
+            /********************************************************
+            * If / else
+            *********************************************************/
             | Control_Flow_ID IF '(' Condition_Expression ')' If_False_Goto_Else
               Control_Flow_Body 
               ELSE 
@@ -360,6 +366,9 @@ Control_Flow: Control_Flow_ID IF '(' Condition_Expression ')' If_False_Goto_Else
               {
                 fprintf(JASM_FILE, "END_IFELSE%d: nop\n\n", $1); // END_IFELSE: 結束
               }
+            /********************************************************
+            * While
+            *********************************************************/
             | Control_Flow_ID WHILE '(' 
               {
                 fprintf(JASM_FILE, "WHILE%d: nop\n", $1); // WHILE:
@@ -373,6 +382,9 @@ Control_Flow: Control_Flow_ID IF '(' Condition_Expression ')' If_False_Goto_Else
                 fprintf(JASM_FILE, "goto WHILE%d\n", $1);        // BODY 執行完，跳回 condition
                 fprintf(JASM_FILE, "END_WHILE%d: nop\n\n", $1);  // END_WHILE: 結束
               }
+            /*******************************************************
+            * For
+            ********************************************************/
             | Control_Flow_ID FOR '(' For_Initial_Expression ';' For_Condition_Expression ';' For_Update_Expression ')' Control_Flow_Body
             | Control_Flow_ID FOREACH '(' ID ':' Integer_Expression RANGE Integer_Expression ')'
               {
